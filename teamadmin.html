@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WE R ONE 2026 臺南場團報管理後台</title>
+  <style>
+    :root {
+      --shine-lime: #00ff7f; --shine-black: #1a1a1a;
+      --shine-bg: #ffffff; --shine-light: #f4f7f5;
+      --shine-gray: #d1d1d1; --shine-red: #ff4d4d;
+    }
+    body { font-family: "Inter", "Noto Sans TC", sans-serif; background-color: #f0f0f0; margin: 0; padding: 10px; }
+    .container {
+      max-width: 1300px; margin: 20px auto; background: var(--shine-bg);
+      padding: clamp(20px, 4vw, 40px); border: 3px solid var(--shine-black);
+      box-shadow: 12px 12px 0px var(--shine-black); box-sizing: border-box;
+      position: relative;
+    }
+    .form-section { border: 2px solid var(--shine-black); padding: 20px; background: var(--shine-light); margin-bottom: 30px; }
+    .section-title { 
+      display: inline-block; background: var(--shine-black); color: var(--shine-lime); 
+      padding: 5px 20px; font-weight: 900; font-size: 1.1em; margin-bottom: 20px; 
+      margin-top: -35px; border: 2px solid var(--shine-black); box-shadow: 4px 4px 0px var(--shine-lime);
+    }
+    .btn { padding: 12px 25px; font-weight: 900; border: 2px solid var(--shine-black); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; text-transform: uppercase; text-decoration: none; }
+    .btn-next { background: var(--shine-black); color: var(--shine-lime); }
+    .btn-next:hover { background: var(--shine-lime); color: var(--shine-black); box-shadow: 6px 6px 0px var(--shine-black); transform: translate(-3px, -3px); }
+    
+    input, select { border: 2px solid var(--shine-black); padding: 12px; font-size: 16px; width: 100%; box-sizing: border-box; margin-top: 5px; }
+    label { font-weight: 900; background: var(--shine-lime); padding: 2px 10px; }
+    
+    .hidden { display: none !important; }
+    .grid-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+    
+    .dorm-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-top: 20px; }
+    .member-pool { background: #333; padding: 15px; border: 3px solid black; min-height: 400px; }
+    .pool-item { background: white; border: 2px solid black; padding: 8px 12px; margin-bottom: 8px; font-weight: 800; cursor: grab; display: flex; justify-content: space-between; }
+    .status-tag { font-size: 10px; padding: 2px 5px; background: var(--shine-black); color: var(--shine-lime); margin-left: 5px; }
+    .form-group { margin-bottom: 10px; }
+    /* 統一卡片樣式：應用於小組與房間 */
+.item-card {
+  background: var(--shine-bg);
+  border: 3px solid var(--shine-black);
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 懸停效果：加上你的招牌黑影 */
+.item-card:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 8px 8px 0px var(--shine-black);
+}
+
+/* 啟用/選取狀態：編組用藍色(自定義)，編寢用你的亮綠色 */
+.item-card.active-group { border-color: #3498db; box-shadow: 6px 6px 0px #3498db; }
+.item-card.active-room { border-color: var(--shine-lime); box-shadow: 6px 6px 0px var(--shine-lime); }
+
+/* 卡片標題區域 */
+.card-header {
+  border-bottom: 2px solid var(--shine-black);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 卡片內成員列 */
+.member-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--shine-gray);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* 空狀態提示 */
+.empty-placeholder {
+  color: var(--shine-gray);
+  font-size: 13px;
+  text-align: center;
+  padding: 20px 0;
+  font-style: italic;
+}
+
+/* 右側格狀顯示區域統一 */
+.grid-display-area {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  align-content: start;
+}
+  </style>
+</head>
+<body>
+
+  <div class="container" id="auth-block">
+    <div style="text-align:center; margin-bottom:30px;">
+      <h1 style="font-weight:900;">WE R ONE 2026 臺南場團報管理後台</h1>
+      <p>請輸入您的窗口報名資料以啟動管理權限</p>
+    </div>
+    <div class="form-section" style="max-width: 500px; margin: 0 auto;">
+      <div class="section-title">窗口資料驗證</div>
+      <div style="margin-bottom:15px;"><label>姓名</label><input type="text" id="w_name" placeholder="真實姓名" required></div>
+      <div style="margin-bottom:15px;">
+        <label>電話</label>
+        <input type="tel" id="w_phone" placeholder="0900-000000" maxlength="11" oninput="formatPhone(this)" required>
+      </div>
+      <div style="margin-bottom:25px;"><label>Email</label><input type="email" id="w_email" placeholder="example@mail.com" required></div>
+      <button class="btn btn-next" style="width:100%" onclick="handleAuth()">驗證並進入管理頁面</button>
+    </div>
+  </div>
+
+  <div class="container hidden" id="admin-dashboard">
+    <div class="section-title" id="admin-welcome">管理介面</div>
+    
+    <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap: wrap;">
+  <button class="btn btn-next" id="btn-tab-edit" onclick="switchTab('edit')">資料修改</button>
+  <button class="btn" id="btn-tab-dorm" onclick="switchTab('dorm')">編寢作業</button>
+  <button class="btn" id="btn-tab-group" onclick="switchTab('group')">編組調整</button>
+  <button class="btn" id="btn-tab-role" onclick="switchTab('role')">隊輔管理</button>
+</div>
+
+    
+    <div id="tab-edit-content">
+       <div class="form-section">
+         <div class="section-title">成員名單</div>
+         <div id="member-list-container"></div>
+       </div>
+    </div>
+
+    <div id="tab-dorm-content" class="hidden">
+  <div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px; align-items: start;">
+    
+    <div class="member-pool" style="position: sticky; top: 10px; max-height: 90vh; overflow-y: auto;">
+      <div style="color:var(--shine-lime); font-weight:900; margin-bottom:10px; border-bottom:2px solid var(--shine-lime);">
+        待編寢成員 (選定房間後點擊姓名入住)
+      </div>
+      <div id="dorm-pool-list"></div>
+    </div>
+
+    <div>
+      <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+        <button class="btn btn-next" onclick="createNewRoom()">+ 建立新房間</button>
+        <div id="current-focus-info" style="font-weight:900; color:red; background:white; padding:5px 10px; border:2px solid black;">
+          請先點選右側房間以開始編寢
+        </div>
+      </div>
+      <div id="room-grid-display" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px;">
+        </div>
+    </div>
+  </div> 
+  <div id="dorm-save-bar" class="hidden" style="position: sticky; bottom: 10px; padding: 15px 0; z-index: 100; margin-top: 20px; background: rgba(255,255,255,0.8); backdrop-filter: blur(5px); border-top: 2px dashed black;">
+    <button class="btn" style="width: 100%; background: #ff4d4d; color: white; border: 2px solid black; box-shadow: 6px 6px 0px black; font-size: 1.2em;" onclick="saveBatchData(this)">
+      💾 確定編寢完成，寫入資料庫
+    </button>
+  </div>
+</div>
+
+  <div id="tab-group-content" class="hidden">
+  <div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px; align-items: start;">
+    <div class="member-pool" style="position: sticky; top: 10px; max-height: 80vh; overflow-y: auto; background: #2c3e50;">
+      <div style="color:#ecf0f1; font-weight:900; margin-bottom:10px; border-bottom:2px solid #3498db; padding:5px;">
+        待編組成員 (選定小組後點擊姓名加入)
+      </div>
+      <div id="group-pool-list"></div>
+    </div>
+
+    <div>
+      <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+        <button class="btn btn-next" onclick="createNewGroup()">+ 建立新小組</button>
+        <div id="group-focus-info" style="font-weight:900; color:#2980b9; background:white; padding:5px 15px; border:2px solid black;">
+          請先點選右側小組以開始編組
+        </div>
+      </div>
+      <div id="group-grid-display" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+        </div>
+    </div>
+  </div>
+  
+  <div id="group-save-bar" class="hidden" style="position: sticky; bottom: 10px; padding: 15px 0; z-index: 100; margin-top: 20px; background: rgba(255,255,255,0.9); border-top: 2px solid black;">
+    <button class="btn" style="width: 100%; background: #ff4d4d; color: white; border: 2px solid black; box-shadow: 6px 6px 0px black;" onclick="saveBatchData(this)">
+      💾 確定編組與編寢完成，寫入資料庫
+    </button>
+  </div>
+</div>
+      
+  <div id="tab-role-content" class="hidden">
+  <div class="form-section">
+    <div class="section-title">隊輔管理</div>
+    <div id="role-management-display" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+      </div>
+  </div>
+  <div id="role-save-bar" class="hidden" style="position: sticky; bottom: 10px; padding: 15px 0; z-index: 100; margin-top: 20px; background: rgba(255,255,255,0.9); border-top: 2px solid black; backdrop-filter: blur(5px);">
+  <button class="btn" style="width: 100%; background: #ff4d4d; color: white; border: 2px solid black; box-shadow: 6px 6px 0px black; font-weight: 900;" onclick="saveBatchData(this)">
+    💾 確定身分調整完成，寫入資料庫
+  </button>
+</div>
+</div>
+
+  <div id="editModal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; overflow-y: auto; padding: 20px 0;">
+    <div class="container" style="max-width: 900px; margin: auto; position: relative;">
+      <button onclick="closeModal()" style="position: absolute; right: 20px; top: 20px; background: var(--shine-red); color: white; border: 2px solid black; padding: 5px 15px; cursor: pointer;">關閉 X</button>
+      <h2 style="text-align: center; font-weight: 900;">修改成員資料</h2>
+      <input type="hidden" id="edit-row-index">
+      
+      <div class="form-section">
+        <div class="section-title">個人資料</div>
+        <div class="grid-row">
+          <div class="form-group"><label>姓名</label><input type="text" id="m-name"></div>
+          <div class="form-group"><label>性別</label><select id="m-gender"><option>男</option><option>女</option></select></div>
+          <div class="form-group"><label>生日</label><input type="date" id="m-birthday"></div>
+          <div class="form-group"><label>手機</label><input type="tel" id="m-phone" maxlength="11" oninput="formatPhone(this)"></div>
+          <div class="form-group"><label>電子郵件</label><input type="email" id="m-email"></div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="section-title">參與身分</div>
+        <div class="grid-row">
+          <div class="form-group"><label>報名身分</label><select id="m-role"><option>國中</option><option>高中職</option><option>大專</option><option>社青</option><option>傳道</option><option>牧師</option></select></div>
+          <div class="form-group"><label>就讀學校</label><input type="text" id="m-school"></div>
+          <div class="form-group"><label>升上年級</label><input type="text" id="m-grade"></div>
+          <div class="form-group"><label>所屬教會</label><input type="text" id="m-church"></div>
+          <div class="form-group"><label>是否為基督徒</label><select id="m-isChristian"><option>是</option><option>否</option></select></div>
+          <div class="form-group"><label>是否已受洗</label><select id="m-isBaptized"><option>是</option><option>否</option></select></div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="section-title">緊急聯絡人</div>
+        <div class="grid-row">
+          <div class="form-group"><label>緊急聯絡人</label><input type="text" id="m-iceName"></div>
+          <div class="form-group"><label>緊急連絡人關係</label><input type="text" id="m-iceRel"></div>
+          <div class="form-group"><label>緊急聯絡人電話</label><input type="tel" id="m-icePhone" maxlength="11" oninput="formatPhone(this)"></div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="section-title">營會行政</div>
+        <div class="grid-row">
+          <div class="form-group"><label>曾參加SHINE營會</label><select id="m-isAttended"><option>是</option><option>否</option></select></div>
+          <div class="form-group"><label>飲食需求</label><select id="m-dietary"><option>葷食</option><option>蛋奶素</option><option>純素</option></select></div>
+          <div class="form-group" style="grid-column: 1 / -1;"><label>特殊狀況與注意事項</label><input type="text" id="m-medical"></div>
+        </div>
+      </div>
+
+      <div style="text-align: center;"><button class="btn btn-next" onclick="submitEdit()">確認儲存修改</button></div>
+    </div>
+  </div>
+
+<script>
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbzCjTMMtoWtZAOo3g14C8Efz2NMk9_-C4eQTpQF-D8ZxMNYj6ijsAO77lBOSGYpH9Uu/exec';
+
+async function callApi(action, payload) {
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action, payload })
+  });
+  const res = await response.json();
+  if (!res.success) throw new Error(res.message);
+  return res.data;
+}
+  
+  // 1. 在 script 開頭定義變數
+  let isDirty = false;
+  let currentUser = "";
+  let fullData = [];
+  let activeRoom = null; 
+  let virtualRooms = []; 
+  let changedRows = new Set();
+  let activeGroup = null;
+  let virtualGroups = []; // 存儲手動新增的小組名稱
+
+  // 1. 手機自動格式化 0900-000000 (修正版)
+  function formatPhone(obj) {
+    let val = obj.value.replace(/\D/g, ''); // 只留數字
+    if (val.length > 10) val = val.slice(0, 10);
+    
+    if (val.length > 4) {
+      obj.value = val.slice(0, 4) + '-' + val.slice(4);
+    } else {
+      obj.value = val;
+    }
+  }
+
+  // 2. 驗證登入
+  async function handleAuth() {
+  const name = document.getElementById('w_name').value.trim();
+  const phone = document.getElementById('w_phone').value.trim();
+  const email = document.getElementById('w_email').value.trim();
+
+  if (!name || !phone || !email) {
+    alert("請完整填寫驗證資訊");
+    return;
+  }
+
+  // 取得按鈕並進入讀取狀態
+  const btn = document.querySelector('#auth-block button');
+  const originalText = btn.innerText;
+  btn.innerText = "⏳ 驗證中...";
+  btn.disabled = true;
+
+  try {
+    // 呼叫我們自定義的 callApi 工具函式
+    const res = await callApi("verifyWindow", { name, phone, email });
+
+    if (res && res.success) {
+      currentUser = res.adminName;
+      // 切換 UI
+      document.getElementById('auth-block').classList.add('hidden');
+      document.getElementById('admin-dashboard').classList.remove('hidden');
+      document.getElementById('admin-welcome').innerText = `管理窗口：${currentUser}`;
+      
+      // 登入後自動載入資料
+      loadAllData();
+    } else {
+      alert("❌ 驗證失敗：找不到匹配的窗口資料");
+      btn.innerText = originalText;
+      btn.disabled = false;
+    }
+  } catch (err) {
+    console.error(err);
+    alert("⚠️ 系統連線錯誤：" + err.message);
+    btn.innerText = originalText;
+    btn.disabled = false;
+  }
+}
+
+
+  // 3. 載入全體資料
+  async function loadAllData() {
+  const container = document.getElementById('member-list-container');
+  // 也可以在適當位置增加一個 loading 動畫或是提示
+  if (container) container.innerHTML = "⏳ 正在從雲端同步資料，請稍候...";
+
+  try {
+    // 使用 callApi 請求資料，將 currentUser 作為 payload 傳入
+    const members = await callApi("getAdminFullData", { adminName: currentUser });
+    
+    // 將取得的資料存入全域變數 fullData
+    fullData = members;
+    
+    // 渲染各個分頁的介面
+    renderUnifiedList();   // 總名單/編輯介面
+    renderGroupInterface(); // 編組調整介面
+    renderDormInterface();  // 編寢作業介面
+    renderRoleInterface();  // 隊輔管理介面
+    
+    console.log("資料同步完成，共 " + fullData.length + " 筆。");
+  } catch (err) {
+    console.error(err);
+    alert("❌ 載入失敗：" + err.message);
+    if (container) container.innerHTML = "❌ 載入失敗，請重新整理頁面。";
+  }
+}
+
+  // 4. 切換分頁
+  function switchTab(tabName) {
+  // 1. 切換內容顯示 (增加 tab-role-content)
+  document.getElementById('tab-edit-content').classList.toggle('hidden', tabName !== 'edit');
+  document.getElementById('tab-group-content').classList.toggle('hidden', tabName !== 'group');
+  document.getElementById('tab-role-content').classList.toggle('hidden', tabName !== 'role');
+  document.getElementById('tab-dorm-content').classList.toggle('hidden', tabName !== 'dorm');
+
+  // 2. 切換按鈕樣式 (亮起目前的標籤，增加 role)
+  const tabs = ['edit', 'group', 'role', 'dorm'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`btn-tab-${t}`);
+    if (btn) {
+      if (t === tabName) {
+        btn.classList.add('btn-next'); // 變黑色背景
+      } else {
+        btn.classList.remove('btn-next'); // 變白色背景
+      }
+    }
+  });
+
+  // 3. 切換分頁時，如果進入編組、職稱或編寢，重新渲染介面以確保資料最新
+  if (tabName === 'group') renderGroupInterface();
+  if (tabName === 'role') renderRoleInterface(); // 點擊時自動刷新職稱管理介面
+  if (tabName === 'dorm') renderDormInterface();
+}
+
+  // 5. 資料修改列表渲染
+  function renderUnifiedList() {
+    const container = document.getElementById('member-list-container');
+    if (!fullData || fullData.length === 0) {
+      container.innerHTML = "目前尚無報名資料";
+      return;
+    }
+    const groups = fullData.reduce((acc, m) => {
+      (acc[m.batch] = acc[m.batch] || []).push(m);
+      return acc;
+    }, {});
+
+    let html = "";
+    for (let batchTime in groups) {
+      html += `<div style="background:#eee; padding:8px 15px; font-weight:900; border-left:5px solid #000; margin:25px 0 10px 0;">報名批次：${batchTime}</div>`;
+      groups[batchTime].forEach(m => {
+        html += `
+          <div style="background:white; border:2px solid black; padding:15px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong style="font-size:1.1em;">${m.name}</strong> 
+              <span style="background: ${m.gender==='男' ? '#e1f5fe' : '#fce4ec'}; padding:2px 8px; border-radius:10px; font-size:12px; margin-left:5px;">${m.gender}</span>
+              <br>
+              <span style="color:#666; font-size:0.9em;">${m.church} | 房號：<b style="color:${m.room ? 'green' : 'red'}">${m.room || '未分配'}</b></span>
+            </div>
+            <button class="btn" onclick="openEditModalByRow(${m.row})">修改資料</button>
+          </div>
+        `;
+      });
+    }
+    container.innerHTML = html;
+  }
+
+function renderDormInterface() {
+  const poolList = document.getElementById('dorm-pool-list');
+  const roomContainer = document.getElementById('room-grid-display');
+  if(!poolList || !roomContainer) return;
+
+  const rooms = {};
+  const unassigned = [];
+  
+  // 1. 資料分類
+  fullData.forEach(m => {
+    if (m.room && m.room.trim() !== "") {
+      if (!rooms[m.room]) rooms[m.room] = [];
+      rooms[m.room].push(m);
+    } else {
+      unassigned.push(m);
+    }
+  });
+
+  // 2. 渲染左側名單池 (保持深色背景，但優化標籤)
+  let poolHtml = "";
+  ['男', '女'].forEach(g => {
+    const list = unassigned.filter(m => m.gender === g);
+    // 使用你的變數 --shine-lime 作為分類標題
+    poolHtml += `<div style="background:var(--shine-black); color:var(--shine-lime); padding:8px 12px; font-size:13px; margin-top:15px; font-weight:900; border-left:6px solid ${g==='男'?'#4da6ff':'#ff85a2'}">${g}生 (${list.length})</div>`;
+    
+    list.forEach(m => {
+      const groupTag = m.group ? `<span style="background:#fff3cd; color:#856404; padding:2px 6px; border-radius:3px; font-size:10px;">${m.group}</span>` : "";
+
+      poolHtml += `
+        <div class="pool-item" onclick="clickToAssign(${m.row}, '${m.gender}')" 
+             style="cursor:pointer; display:block; padding:12px; border:2px solid var(--shine-black); background:white; margin-bottom:10px; transition:0.1s;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:900; font-size:16px;">${m.name}</span>
+          </div>
+          <div style="margin-top:6px;">
+            ${groupTag}
+          </div>
+        </div>`;
+    });
+  });
+  poolList.innerHTML = poolHtml;
+
+  // 3. 渲染右側房間列表 (採用與編組一致的 item-card 風格)
+  let roomHtml = "";
+  const allRoomNos = Array.from(new Set([...Object.keys(rooms), ...virtualRooms])).sort();
+  
+  allRoomNos.forEach(rNo => {
+    const members = rooms[rNo] || [];
+    const isSelected = (activeRoom === rNo);
+    
+    // 判定房間性別色彩 (男/女/空)
+    let borderTopColor = "var(--shine-gray)";
+    let genderLabel = "未定";
+    if (members.length > 0) {
+      borderTopColor = (members[0].gender === '男' ? '#4da6ff' : '#ff85a2');
+      genderLabel = members[0].gender;
+    }
+
+    roomHtml += `
+      <div class="item-card ${isSelected ? 'active-room' : ''}" onclick="setActiveRoom('${rNo}')" 
+           style="border-top: 10px solid ${borderTopColor};">
+        
+        <div class="card-header">
+          <strong style="font-size:1.3em; font-weight:900;">${rNo} 房</strong>
+          <span class="status-tag">${members.length}/4</span>
+        </div>
+
+        <div style="flex-grow:1; min-height:60px;">
+          ${members.length > 0 ? 
+            members.map(m => `
+              <div class="member-row">
+                <div>
+                  <div style="font-weight:900;">• ${m.name}</div>
+                  <div style="font-size:11px; color:#666; margin-left:12px;">${m.group || ''}</div>
+                </div>
+                <span style="color:var(--shine-red); font-size:20px; cursor:pointer; font-weight:bold; padding:0 5px;" 
+                      onclick="event.stopPropagation(); removeFromRoom(${m.row})">×</span>
+              </div>
+            `).join('') : 
+            `<div class="empty-placeholder">
+                (空房 - ${genderLabel}生)<br>點擊左側姓名入住
+             </div>`
+          }
+        </div>
+      </div>`;
+  });
+  roomContainer.innerHTML = roomHtml;
+  }
+
+  function setActiveRoom(rNo) {
+    activeRoom = rNo;
+    const roomMembers = fullData.filter(m => m.room === rNo);
+    const gender = roomMembers.length > 0 ? roomMembers[0].gender : "未定";
+    document.getElementById('current-focus-info').innerHTML = `👉 正在編排：<b style="color:red;">${rNo}</b> 房 (${gender}生)`;
+    renderDormInterface();
+  }
+
+  function createNewRoom() {
+    const rNo = prompt("請輸入新房號 (如 A101):");
+    if (!rNo) return;
+    if (fullData.some(m => m.room === rNo) || virtualRooms.includes(rNo)) {
+      alert("房號已存在");
+      setActiveRoom(rNo);
+      return;
+    }
+    virtualRooms.push(rNo);
+    setActiveRoom(rNo);
+  }
+
+  // 2. 修改入住函數：移除 google.script.run
+function clickToAssign(row, gender) {
+  if (!activeRoom) {
+    alert("請先點選右側的一個「房間」！");
+    return;
+  }
+  const roomMembers = fullData.filter(m => m.room === activeRoom);
+  if (roomMembers.length > 0 && roomMembers[0].gender !== gender) {
+    alert(`❌ 性別錯誤！此房間目前為${roomMembers[0].gender}生房。`);
+    return;
+  }
+  if (roomMembers.length >= 4) {
+    alert("❌ 房間已滿 4 人！");
+    return;
+  }
+
+  const m = fullData.find(x => x.row == row);
+  m.room = activeRoom;
+  
+  changedRows.add(row); // 標記此人已被更動
+  isDirty = true;
+  document.getElementById('dorm-save-bar').classList.remove('hidden');
+  renderDormInterface();
+}
+
+ // 3. 修改移除函數：移除 google.script.run
+function removeFromRoom(row) {
+  const m = fullData.find(x => x.row == row);
+  m.room = "";
+  
+  changedRows.add(row); // 標記此人已被更動
+  isDirty = true;
+  document.getElementById('dorm-save-bar').classList.remove('hidden');
+  renderDormInterface();
+}
+
+
+  // 7. 彈窗編輯邏輯
+  function openEditModalByRow(rowId) {
+    const m = fullData.find(item => item.row === rowId);
+    if(!m) return;
+    document.getElementById('edit-row-index').value = m.row;
+    document.getElementById('m-name').value = m.name || "";
+    document.getElementById('m-gender').value = m.gender || "";
+    document.getElementById('m-birthday').value = m.birthday || "";
+    /* document.getElementById('m-idCard').value = m.idCard || ""; */
+    document.getElementById('m-phone').value = m.phone || "";
+    document.getElementById('m-email').value = m.email || "";
+    document.getElementById('m-role').value = m.role || "";
+    document.getElementById('m-school').value = m.school || "";
+    document.getElementById('m-grade').value = m.grade || "";
+    document.getElementById('m-church').value = m.church || "";
+    document.getElementById('m-isChristian').value = m.isChristian || "";
+    document.getElementById('m-isBaptized').value = m.isBaptized || "";
+    document.getElementById('m-iceName').value = m.iceName || "";
+    document.getElementById('m-iceRel').value = m.iceRel || "";
+    document.getElementById('m-icePhone').value = m.icePhone || "";
+    document.getElementById('m-isAttended').value = m.isAttended || "";
+    document.getElementById('m-dietary').value = m.dietary || "";
+    document.getElementById('m-medical').value = m.medical || "";
+    document.getElementById('editModal').classList.remove('hidden');
+  }
+
+  function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
+
+  async function submitEdit(btn) {
+  const row = document.getElementById('edit-row-index').value;
+  
+  // 安全起見：如果按鈕沒被傳入，則嘗試透過 event 抓取（相容舊寫法，但建議傳入 this）
+  const targetBtn = btn || (window.event ? window.event.target : null);
+  
+  if (targetBtn) {
+    targetBtn.innerText = "⏳ 儲存中...";
+    targetBtn.disabled = true;
+  }
+  
+  const payload = {
+    name: document.getElementById('m-name').value,
+    gender: document.getElementById('m-gender').value,
+    birthday: document.getElementById('m-birthday').value,
+    phone: document.getElementById('m-phone').value,
+    email: document.getElementById('m-email').value,
+    role: document.getElementById('m-role').value,
+    school: document.getElementById('m-school').value,
+    grade: document.getElementById('m-grade').value,
+    church: document.getElementById('m-church').value,
+    isChristian: document.getElementById('m-isChristian').value,
+    isBaptized: document.getElementById('m-isBaptized').value,
+    iceName: document.getElementById('m-iceName').value,
+    iceRel: document.getElementById('m-iceRel').value,
+    icePhone: document.getElementById('m-icePhone').value,
+    isAttended: document.getElementById('m-isAttended').value,
+    dietary: document.getElementById('m-dietary').value,
+    medical: document.getElementById('m-medical').value,
+  };
+
+  try {
+    // 呼叫 API，傳送 row, payload 和當前操作者
+    await callApi("updateMultipleColumns", { 
+      row: row, 
+      p: payload, 
+      adminName: currentUser 
+    });
+
+    alert("✅ 資料更新成功！");
+    closeModal();
+    // 更新成功後，重新從後端抓取最新資料以同步前端
+    await loadAllData(); 
+    
+  } catch (err) {
+    console.error(err);
+    alert("❌ 更新失敗：" + err.message);
+  } finally {
+    if (targetBtn) {
+      targetBtn.innerText = "確認儲存修改";
+      targetBtn.disabled = false;
+    }
+  }
+}
+
+  /**
+ * 渲染編組介面
+ */
+function renderGroupInterface() {
+  const pool = document.getElementById('group-pool-list');
+  const display = document.getElementById('group-grid-display');
+  const groupMap = {}; 
+  const unassigned = [];
+
+  fullData.forEach(m => {
+    // 直接以 m.group 作為唯一的 Key，不再加上 _BK_ 
+    if (m.group && m.group.trim() !== "") {
+      if (!groupMap[m.group]) groupMap[m.group] = [];
+      groupMap[m.group].push(m);
+    } else {
+      unassigned.push(m);
+    }
+  });
+
+  // 渲染左側池
+  pool.innerHTML = unassigned.map(m => `
+    <div class="pool-item" onclick="clickToAssignGroup(${m.row})" style="padding:10px; background:white; margin-bottom:5px; border:2px solid black; cursor:pointer;">
+      <div style="font-weight:bold;">${m.name}</div>
+      <div style="font-size:10px; color: #666;">${m.batch}</div>
+    </div>
+  `).join('');
+
+  // 1. 先進行穩定排序 (空組優先)
+const allGroups = Array.from(new Set([...Object.keys(groupMap), ...virtualGroups])).sort((a, b) => {
+  const membersA = groupMap[a] || [];
+  const membersB = groupMap[b] || [];
+
+  // 邏輯 A：如果 a 是空組，b 不是，則 a 往前排 (-1)
+  if (membersA.length === 0 && membersB.length > 0) return -1;
+  // 邏輯 B：如果 b 是空組，a 不是，則 b 往前排 (1)
+  if (membersA.length > 0 && membersB.length === 0) return 1;
+
+  // 邏輯 C：如果兩者都是空組，或兩者都有人，則按名稱排序
+  return a.localeCompare(b);
+});
+
+// 2. 排序完後，再接 .map 進行 HTML 渲染
+display.innerHTML = allGroups.map(groupName => {
+  const ms = groupMap[groupName] || [];
+  const isSelected = (activeGroup === groupName);
+
+  return `
+  <div class="item-card ${isSelected ? 'active-group' : ''}" onclick="setActiveGroup('${groupName}')">
+    <div class="card-header">
+      <input type="text" value="${groupName}" onchange="renameGroup('${groupName}', this.value)"
+             style="font-weight:900; border:none; background:transparent; width:100%; padding:0;" onclick="event.stopPropagation()">
+    </div>
+    <div style="flex-grow:1;">
+      ${ms.length > 0 ? ms.map(m => `
+        <div class="member-row">
+          <span>• ${m.name}</span>
+          <span style="color:var(--shine-red); cursor:pointer;" onclick="event.stopPropagation(); removeFromGroup(${m.row})">×</span>
+        </div>
+      `).join('') : '<div class="empty-placeholder">(空小組 - 點擊左側加入)</div>'}
+    </div>
+  </div>`;
+}).join('');
+}
+
+function setActiveGroup(key) { activeGroup = key; renderGroupInterface(); document.getElementById('group-focus-info').innerText = "目標組別：" + key.split('_BK_')[0]; }
+
+function createNewGroup() {
+  const name = prompt("請輸入新小組名稱：");
+  if (name) {
+    const newKey = name ;
+    virtualGroups.push(newKey);
+    setActiveGroup(newKey);
+  }
+}
+
+function clickToAssignGroup(row) {
+  if (!activeGroup) return alert("請先點選右側一個「小組卡片」！");
+  const m = fullData.find(x => x.row == row);
+  
+  m.group = activeGroup.split('_BK_')[0]; 
+  m.role = ""; // 移動後職稱回歸學員 (清空)
+  
+  changedRows.add(row);
+  isDirty = true;
+  document.getElementById('group-save-bar').classList.remove('hidden');
+  renderGroupInterface();
+}
+
+function removeFromGroup(row) {
+  const m = fullData.find(x => x.row == row);
+  m.group = "";
+  changedRows.add(row);
+  isDirty = true;
+  document.getElementById('group-save-bar').classList.remove('hidden');
+  renderGroupInterface();
+}
+
+function renameGroup(oldKey, newName) {
+  // 當使用者修改卡片標題時，更新該卡片內所有人的 group 欄位
+  fullData.forEach(m => {
+    let currentKey = m.group + "_BK_" + m.batch;
+    if (currentKey === oldKey) {
+      m.group = newName;
+      changedRows.add(m.row);
+    }
+  });
+  // 同步更新 virtualGroups
+  const idx = virtualGroups.indexOf(oldKey);
+  if (idx > -1) virtualGroups[idx] = newName + "_BK_手動新增_" + Date.now();
+  
+  isDirty = true;
+  document.getElementById('group-save-bar').classList.remove('hidden');
+  renderGroupInterface();
+}
+
+
+/**
+ * 最終檢查與儲存
+ */
+function renderRoleInterface() {
+  const display = document.getElementById('role-management-display');
+  const groups = {};
+
+  // 1. 先將成員按組別分類
+  fullData.forEach(m => {
+    if (m.group && m.group.trim() !== "") {
+      if (!groups[m.group]) groups[m.group] = [];
+      groups[m.group].push(m);
+    }
+  });
+
+  if (Object.keys(groups).length === 0) {
+    display.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align:center; padding:50px; border:2px dashed var(--shine-black);">
+        <p style="font-weight:900;">尚未有已編組成員，請先前往「編組調整」。</p>
+      </div>`;
+    return;
+  }
+
+  // 2. 渲染邏輯
+  display.innerHTML = Object.keys(groups).sort().map(groupName => {
+    const gMembers = groups[groupName];
+    return `
+      <div class="item-card">
+        <div class="card-header">
+          <strong style="font-size:1.2em;">${groupName}</strong>
+        </div>
+        <div style="flex-grow:1;">
+          ${gMembers.map(m => {
+            const isChief = m.teamRole === '正隊輔';
+            const isAssistant = m.teamRole === '副隊輔';
+            const isStudent = !m.teamRole || m.teamRole === '';
+
+            return `
+              <div class="member-row" style="padding:10px 0; border-bottom:2px solid #eee;">
+                <span style="font-weight:900; font-size:15px;">${m.name}</span>
+                <div style="display:flex; gap:8px;">
+                  <button onclick="toggleRole(${m.row}, '正隊輔')" 
+                    style="cursor:pointer; border:2px solid black; padding:4px 8px; font-weight:900;
+                    background: ${isChief ? '#ffcc00' : 'white'}; 
+                    box-shadow: ${isChief ? 'inset 2px 2px 0px rgba(0,0,0,0.2)' : '2px 2px 0px black'};">
+                    正
+                  </button>
+                  
+                  <button onclick="toggleRole(${m.row}, '副隊輔')" 
+                    style="cursor:pointer; border:2px solid black; padding:4px 8px; font-weight:900;
+                    background: ${isAssistant ? '#00d4ff' : 'white'}; 
+                    box-shadow: ${isAssistant ? 'inset 2px 2px 0px rgba(0,0,0,0.2)' : '2px 2px 0px black'};">
+                    副
+                  </button>
+                  
+                  <button onclick="toggleRole(${m.row}, '')" 
+                    style="cursor:pointer; border:2px solid black; padding:4px 8px; font-weight:900;
+                    background: ${isStudent ? '#eee' : 'white'}; 
+                    color: ${isStudent ? '#888' : 'black'};
+                    box-shadow: ${isStudent ? 'inset 2px 2px 0px rgba(0,0,0,0.1)' : '2px 2px 0px black'};">
+                    員
+                  </button>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleRole(row, targetRole) {
+  const m = fullData.find(item => item.row === row);
+  if (!m) return;
+
+  // 1. 如果點擊的是目前的身分，代表要「取消」，直接變回學員
+  if (m.teamRole === targetRole) {
+    m.teamRole = "";
+  } 
+  // 2. 如果是要切換到「正隊輔」或「副隊輔」，先檢查名額
+  else if (targetRole !== "") {
+    // 找出同組的所有成員
+    const groupMembers = fullData.filter(item => item.group === m.group);
+    
+    if (targetRole === "正隊輔") {
+      const chiefCount = groupMembers.filter(item => item.teamRole === "正隊輔").length;
+      if (chiefCount >= 1) {
+        alert(`⚠️ 【${m.group}】已經有一位正隊輔了！\n請先將原正隊輔設為學員。`);
+        return;
+      }
+    } 
+    else if (targetRole === "副隊輔") {
+      const assistantCount = groupMembers.filter(item => item.teamRole === "副隊輔").length;
+      if (assistantCount >= 2) {
+        alert(`⚠️ 【${m.group}】副隊輔已達 2 位上限！`);
+        return;
+      }
+    }
+    m.teamRole = targetRole;
+  } 
+  // 3. 如果是點擊「學員」按鈕
+  else {
+    m.teamRole = "";
+  }
+
+  // 標記變動並更新介面
+  changedRows.add(row);
+  isDirty = true;
+
+  const saveBar = document.getElementById('role-save-bar');
+  if (saveBar) saveBar.classList.remove('hidden');
+
+  renderRoleInterface(); // 重新渲染，顏色會隨之改變
+}
+
+// 建議在 HTML 調用時改為：onclick="saveBatchData(this)"
+async function saveBatchData(btnElement) {
+  if (changedRows.size === 0) return alert("尚未偵測到變動。");
+
+  // 1. 判定本次變動是否涉及「組別相關」
+  const hasGroupChanges = fullData.some(m => changedRows.has(m.row) && m.group !== undefined);
+
+  // 2. 只有在涉及組別變動時，執行重複組名檢查
+  if (hasGroupChanges) {
+    const groupContainer = document.getElementById('group-grid-display');
+    // 確保只在「編組調整」分頁有內容且可見時檢查
+    if (groupContainer && groupContainer.offsetParent !== null) { 
+      const groupInputs = groupContainer.querySelectorAll('input');
+      const names = Array.from(groupInputs).map(i => i.value.trim());
+      const filledNames = names.filter(n => n !== "");
+      const dups = filledNames.filter((item, index) => filledNames.indexOf(item) !== index);
+      
+      if (dups.length > 0) {
+        alert(`⚠️ 儲存攔截：\n偵測到重複的小組名稱：${[...new Set(dups)].join(', ')}\n\n請修正後再儲存。`);
+        switchTab('group'); 
+        return;
+      }
+    }
+  }
+
+  // 3. 處理按鈕狀態
+  // 排除使用 event.currentTarget 的不穩定性，優先使用傳入的 btnElement
+  const btn = btnElement || document.getElementById('save-batch-btn') || document.getElementById('role-save-bar-btn');
+  const originalText = btn ? btn.innerText : "💾 確定儲存";
+  
+  if (btn) {
+    btn.innerText = `⏳ 同步中...`;
+    btn.disabled = true;
+  }
+
+  // 4. 封裝資料
+  const updates = fullData
+    .filter(m => changedRows.has(m.row))
+    .map(m => ({
+      row: m.row,
+      group: m.group || "",      // 第 21 欄
+      teamRole: m.teamRole || "", // 第 22 欄
+      room: m.room || ""          // 第 27 欄
+    }));
+
+  try {
+    // 5. 執行儲存 API 呼叫
+    const res = await callApi("batchUpdateDormAndGroups", { 
+      updates: updates, 
+      adminName: currentUser 
+    });
+
+    if (res && res.success) {
+      alert("✅ 儲存成功！");
+      changedRows.clear();
+      isDirty = false;
+      
+      // 隱藏所有分頁的儲存條
+      ['group-save-bar', 'dorm-save-bar', 'role-save-bar'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.classList.add('hidden');
+      });
+
+      // 重新載入數據，確保本地狀態與後端 Google Sheet 一致
+      await loadAllData(); 
+    } else {
+      throw new Error(res.message || "未知伺服器錯誤");
+    }
+
+  } catch (err) {
+    console.error("儲存失敗:", err);
+    alert("❌ 儲存失敗：" + err.message);
+  } finally {
+    // 6. 恢復按鈕狀態
+    if (btn) {
+      btn.innerText = originalText;
+      btn.disabled = false;
+    }
+  }
+}
+</script>
+</body>
+</html>
+
