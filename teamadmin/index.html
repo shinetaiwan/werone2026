@@ -962,14 +962,16 @@ async function saveBatchData(btnElement) {
   }
 
   // 4. 封裝資料
-  const updates = fullData
-    .filter(m => changedRows.has(m.row))
-    .map(m => ({
-      row: m.row,
-      group: m.group || "",      // 第 21 欄
-      teamRole: m.teamRole || "", // 第 22 欄
-      room: m.room || ""          // 第 27 欄
-    }));
+  // 直接從 Map 中提取已經準備好的變更物件
+const updates = Array.from(changedRows.values());
+
+// 診斷：看看準備送出的資料長什麼樣子
+console.log("準備送出的更新資料:", updates);
+
+if (updates.length === 0) {
+    alert("沒有偵測到任何變更");
+    return;
+}
 
   try {
     // 1. 呼叫 API (後端這時會寫入資料)
