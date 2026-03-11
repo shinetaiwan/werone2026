@@ -562,8 +562,8 @@ function clickToAssign(row, gender) {
 
   const m = fullData.find(x => x.row == row);
   m.room = activeRoom;
-  
-  changedRows.add(row); // 標記此人已被更動
+ // 修正點：Map 要用 .set()，且為了符合後端批次更新格式，存入一個物件
+  changedRows.set(row, { row: row, room: activeRoom });
   isDirty = true;
   document.getElementById('dorm-save-bar').classList.remove('hidden');
   renderDormInterface();
@@ -572,9 +572,10 @@ function clickToAssign(row, gender) {
  // 3. 修改移除函數：移除 google.script.run
 function removeFromRoom(row) {
   const m = fullData.find(x => x.row == row);
+  if (!m) return;
   m.room = "";
-  
-  changedRows.add(row); // 標記此人已被更動
+// 修正點：標記該行號的 room 為空字串
+  changedRows.set(row, { row: row, room: "" });
   isDirty = true;
   document.getElementById('dorm-save-bar').classList.remove('hidden');
   renderDormInterface();
@@ -945,7 +946,13 @@ function toggleRole(row, targetRole) {
   }
 
   // 標記變動並更新介面
-  changedRows.add(row);
+  // 修正點：將 .add(row) 改為 .set(...)
+  // 這樣儲存時，後端 batchUpdateDormAndGroups 才能抓到 teamRole
+  changedRows.set(row, { 
+    row: row, 
+    group: m.group, 
+    teamRole: targetRole 
+  });
   isDirty = true;
 
   const saveBar = document.getElementById('role-save-bar');
