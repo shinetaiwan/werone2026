@@ -310,26 +310,27 @@ async function callApi(action, payload) {
   btn.disabled = true;
 
   try {
-    // 呼叫我們自定義的 callApi 工具函式
+    // 呼叫 API
     const res = await callApi("verifyWindow", { name, phone, email });
 
-    if (res) { 
-    currentUser = res.adminName || name;
-      // 切換 UI
-      document.getElementById('auth-block').classList.add('hidden');
-      document.getElementById('admin-dashboard').classList.remove('hidden');
-      document.getElementById('admin-welcome').innerText = `管理窗口：${currentUser}`;
+    // 💡 修正點：因為 callApi 內部如果驗證失敗會直接 throw Error 
+    // 所以能執行到這行，代表後端一定驗證成功了！
+    // 我們不需要判斷 if(res)，因為 res 可能是 undefined (由 callApi 回傳的 res.data 導致)
+    
+    currentUser = name; // 直接使用前端驗證過的 name
+    
+    // 切換 UI
+    document.getElementById('auth-block').classList.add('hidden');
+    document.getElementById('admin-dashboard').classList.remove('hidden');
+    document.getElementById('admin-welcome').innerText = `管理窗口：${currentUser}`;
       
-      // 登入後自動載入資料
-      loadAllData();
-    } else {
-      alert("❌ 驗證失敗：找不到匹配的窗口資料");
-      btn.innerText = originalText;
-      btn.disabled = false;
-    }
+    // 登入後自動載入資料
+    loadAllData();
+
   } catch (err) {
-    console.error(err);
-    alert("⚠️ 系統連線錯誤：" + err.message);
+    // 只要驗證失敗 (found=false) 或連線有問題，都會跳到這裡
+    console.error("驗證過程錯誤:", err);
+    alert("❌ " + err.message); // 這會顯示後端 throw 的 "找不到符合的窗口資料..."
     btn.innerText = originalText;
     btn.disabled = false;
   }
