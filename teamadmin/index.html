@@ -276,7 +276,7 @@ async function callApi(action, payload) {
   let fullData = [];
   let activeRoom = null; 
   let virtualRooms = []; 
-  let changedRows = new Set();
+  let changedRows = new Map();
   let activeGroup = null;
   let virtualGroups = []; // 存儲手動新增的小組名稱
 
