@@ -339,25 +339,36 @@ async function callApi(action, payload) {
   // 3. 載入全體資料
   async function loadAllData() {
   const container = document.getElementById('member-list-container');
-  // 也可以在適當位置增加一個 loading 動畫或是提示
   if (container) container.innerHTML = "⏳ 正在從雲端同步資料，請稍候...";
 
   try {
-    // 使用 callApi 請求資料，將 currentUser 作為 payload 傳入
-    const members = await callApi("getAdminFullData", { adminName: currentUser });
+    // 1. 呼叫 API
+    const res = await callApi("getAdminFullData", { adminName: currentUser });
     
-    // 將取得的資料存入全域變數 fullData
-    fullData = members;
+    // 2. 關鍵修正：從 res.data 中提取陣列
+    // 如果 res.data 存在就用它，否則才看 res 本身（預防萬一）
+    fullData = (res && res.data) ? res.data : res;
+
+    // 3. 安全檢查：確保 fullData 必須是陣列，否則渲染會出錯
+    if (!Array.isArray(fullData)) {
+      console.error("取得的資料格式並非陣列:", fullData);
+      fullData = [];
+    }
     
-    // 渲染各個分頁的介面
-    renderUnifiedList();   // 總名單/編輯介面
-    renderGroupInterface(); // 編組調整介面
-    renderDormInterface();  // 編寢作業介面
-    renderRoleInterface();  // 隊輔管理介面
+    // 4. 執行渲染
+    renderUnifiedList();   
+    renderGroupInterface(); 
+    renderDormInterface();  
+    renderRoleInterface();  
     
     console.log("資料同步完成，共 " + fullData.length + " 筆。");
+    
+    // 如果有 loading 提示，渲染完可以清空或更新狀態
+    if (container && fullData.length === 0) {
+      container.innerHTML = "📭 目前無相關學員資料。";
+    }
   } catch (err) {
-    console.error(err);
+    console.error("loadAllData 發生錯誤:", err);
     alert("❌ 載入失敗：" + err.message);
     if (container) container.innerHTML = "❌ 載入失敗，請重新整理頁面。";
   }
