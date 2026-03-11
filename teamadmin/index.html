@@ -673,8 +673,8 @@ function renderGroupInterface() {
   const groupMap = {}; 
   const unassigned = [];
 
+  // 分組邏輯：優先讀取暫存區
   fullData.forEach(m => {
-    // 💡 關鍵：檢查暫存區有沒有這筆 row 的變更，有的話優先採用
     const pending = changedRows.get(m.row);
     const currentGroupName = (pending && pending.group !== undefined) ? pending.group : m.group;
 
@@ -686,7 +686,7 @@ function renderGroupInterface() {
     }
   });
 
-  // 渲染左側池 (保持不變)
+  // 渲染左側池
   pool.innerHTML = unassigned.map(m => `
     <div class="pool-item" onclick="clickToAssignGroup(${m.row})" style="padding:10px; background:white; margin-bottom:5px; border:2px solid black; cursor:pointer;">
       <div style="font-weight:bold;">${m.name}</div>
@@ -694,7 +694,7 @@ function renderGroupInterface() {
     </div>
   `).join('');
 
-  // 1. 先進行穩定排序 (這裡的 allGroups 會抓到最新的 currentGroupName)
+  // 排序邏輯
   const allGroups = Array.from(new Set([...Object.keys(groupMap), ...virtualGroups])).sort((a, b) => {
     const membersA = groupMap[a] || [];
     const membersB = groupMap[b] || [];
@@ -703,17 +703,23 @@ function renderGroupInterface() {
     return a.localeCompare(b);
   });
 
-  // 2. 渲染卡片
-  display.innerHTML = allGroups.map(groupName => {
+  // 渲染右側卡片
+  display.innerHTML = allGroups.map((groupName, index) => {
     const ms = groupMap[groupName] || [];
     const isSelected = (activeGroup === groupName);
+    // 生成一個唯一的 ID 避免瀏覽器混淆
+    const inputId = `group-input-${index}`;
 
     return `
     <div class="item-card ${isSelected ? 'active-group' : ''}" onclick="setActiveGroup('${groupName}')">
       <div class="card-header">
-        <input type="text" value="${groupName}" 
-               onchange="renameGroup('${groupName}', this.value)"
-               style="font-weight:900; border:none; background:transparent; width:100%; padding:0;" 
+        <input type="text" 
+               id="${inputId}"
+               name="groupName"
+               value="${groupName}" 
+               onblur="renameGroup('${groupName}', this.value)"
+               onkeydown="if(event.key==='Enter') this.blur()"
+               style="font-weight:900; border:none; background:transparent; width:100%; padding:0; outline:none;" 
                onclick="event.stopPropagation()">
       </div>
       <div style="flex-grow:1;">
@@ -762,37 +768,47 @@ function removeFromGroup(row) {
 }
 
 function renameGroup(oldName, newName) {
-  if (!newName || oldName === newName) return;
+  // 1. 基本檢查：若名字沒變或為空則跳過
+  const trimmedNewName = newName.trim();
+  if (!trimmedNewName || oldName === trimmedNewName) return;
 
-  // 1. 找出所有目前屬於「舊組名」的成員 (包含已經在暫存區被改成舊組名的人)
+  console.log(`[重新命名] 從 ${oldName} 改為 ${trimmedNewName}`);
+
+  // 2. 找出受影響成員並更新暫存
+  let affectedCount = 0;
   fullData.forEach(m => {
     const pending = changedRows.get(m.row);
     const currentGroupName = (pending && pending.group !== undefined) ? pending.group : m.group;
 
     if (currentGroupName === oldName) {
-      // 2. 更新暫存區物件
       if (!changedRows.has(m.row)) {
         changedRows.set(m.row, { row: m.row });
       }
-      changedRows.get(m.row).group = newName;
+      changedRows.get(m.row).group = trimmedNewName;
+      affectedCount++;
     }
   });
 
-  // 3. 同步更新 virtualGroups (避免空組改名後在介面上消失)
-  const idx = virtualGroups.indexOf(oldName);
-  if (idx > -1) {
-    virtualGroups[idx] = newName;
+  // 3. 更新虛擬小組清單 (這是維持介面不跳掉的關鍵)
+  const vIdx = virtualGroups.indexOf(oldName);
+  if (vIdx > -1) {
+    virtualGroups[vIdx] = trimmedNewName;
   }
 
-  // 4. 如果當前選中的是這組，也要更新選中標記
+  // 4. 更新當前活動組名
   if (activeGroup === oldName) {
-    activeGroup = newName;
+    activeGroup = trimmedNewName;
   }
 
-  isDirty = true;
-  document.getElementById('group-save-bar').classList.remove('hidden');
+  // 5. 介面與狀態更新
+  if (affectedCount > 0 || vIdx > -1) {
+    isDirty = true;
+    const saveBar = document.getElementById('group-save-bar');
+    if (saveBar) saveBar.classList.remove('hidden');
+    console.log(`[成功] 已暫存 ${affectedCount} 位成員的組名變更`);
+  }
   
-  // 5. 重新渲染，這時 render 會從 changedRows 抓到新名字，輸入框就不會跳回去了
+  // 6. 重新渲染
   renderGroupInterface();
 }
 
