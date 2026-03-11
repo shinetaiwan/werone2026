@@ -313,8 +313,8 @@ async function callApi(action, payload) {
     // 呼叫我們自定義的 callApi 工具函式
     const res = await callApi("verifyWindow", { name, phone, email });
 
-    if (res && res.success) {
-      currentUser = res.adminName;
+    if (res) { 
+    currentUser = res.adminName || name;
       // 切換 UI
       document.getElementById('auth-block').classList.add('hidden');
       document.getElementById('admin-dashboard').classList.remove('hidden');
@@ -344,6 +344,7 @@ async function callApi(action, payload) {
   try {
     // 1. 呼叫 API
     const res = await callApi("getAdminFullData", { adminName: currentUser });
+    fullData = res; // 直接賦值即可，因為 callApi 已經幫你拆開 data 層了
     
     // 2. 關鍵修正：從 res.data 中提取陣列
     // 如果 res.data 存在就用它，否則才看 res 本身（預防萬一）
