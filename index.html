@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8" content="WE R ONE 2026報名系統">
+  <title>WE R ONE 2026 營會報名系統</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <style>
+    /* 維持上一版 CSS 視覺屬性，絕不動手 */
+    :root {
+      --shine-lime: #00ff7f; --shine-black: #1a1a1a;
+      --shine-bg: #ffffff; --shine-light: #f4f7f5;
+      --shine-gray: #d1d1d1; --shine-red: #ff4d4d;
+    }
+
+    body { font-family: "Inter", "Noto Sans TC", sans-serif; background-color: #f0f0f0; margin: 0; padding: 10px; }
+    .form-section { border: 2px solid var(--shine-black); padding: 20px; background: var(--shine-light); margin-bottom: 30px; }
+    .section-title { 
+  display: inline-block; background: var(--shine-black); color: var(--shine-lime); 
+  padding: 5px 20px; font-weight: 900; font-size: 1.1em; margin-bottom: 20px; 
+  margin-top: -35px; border: 2px solid var(--shine-black); box-shadow: 4px 4px 0px var(--shine-lime);
+}
+    .grid-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+    .container {
+      max-width: 1300px; margin: 20px auto; background: var(--shine-bg);
+      padding: clamp(20px, 4vw, 40px); border: 3px solid var(--shine-black);
+      box-shadow: 12px 12px 0px var(--shine-black); box-sizing: border-box;
+      position: relative;
+    }
+
+    .header-area h2 { text-align: center; font-weight: 900; font-size: clamp(24px, 5vw, 36px); margin-bottom: 25px; }
+    .header-area h2::after {
+      content: "ROAR  X  RADICAL  X  REVIVAL  X  SHINE  X  NEW ERA  X  UPGRADE"; display: block; font-size: 11px; color: var(--shine-lime);
+      background: var(--shine-black); width: fit-content; margin: 10px auto; padding: 3px 15px; letter-spacing: 1px;
+    }
+
+    .stepper { display: flex; justify-content: center; margin-bottom: 40px; gap: 20px; }
+    .step { padding: 10px 25px; border: 2px solid var(--shine-black); background: white; font-weight: 800; font-size: 14px; position: relative; }
+    .step.active { background: var(--shine-black); color: var(--shine-lime); box-shadow: 4px 4px 0px rgba(0, 255, 127, 0.5); z-index: 1; }
+
+    .table-responsive { width: 100%; overflow-x: auto; border: 3px solid var(--shine-black); margin-bottom: 20px; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; min-width: 3000px; background: white; }
+    
+    /* --- Phase 1: 錄入表格寬度控制 (指定給 #memberTable) --- */
+    #memberTable th:nth-child(1) { width: 120px; } /* 姓名 */
+    #memberTable th:nth-child(2) { width: 100px; }  /* 性別 */
+    #memberTable th:nth-child(3) { width: 160px; } /* 生日 */
+    /* #memberTable th:nth-child(4) { width: 140px; } /* 身分證 */
+    #memberTable th:nth-child(4) { width: 140px; } /* 手機 */
+    #memberTable th:nth-child(5) { width: 250px; } /* Email */
+    #memberTable th:nth-child(6) { width: 120px; } /* 報名身分 */
+    #memberTable th:nth-child(7) { width: 140px; } /* 學校 */
+    #memberTable th:nth-child(8) { width: 100px; } /* 升上年級 */
+    #memberTable th:nth-child(9) { width: 140px; } /* 教會 */
+    #memberTable th:nth-child(10) { width: 120px; } /* 是否為基督徒 */
+    #memberTable th:nth-child(11) { width: 100px; } /* 是否受洗 */
+    #memberTable th:nth-child(12) { width: 120px; } /* 聯絡人 */
+    #memberTable th:nth-child(13) { width: 80px; } /* 關係 */
+    #memberTable th:nth-child(14) { width: 140px; } /* 緊急連絡人電話 */
+    #memberTable th:nth-child(15) { width: 120px; } /* 參加過SHINE */
+    #memberTable th:nth-child(16) { width: 120px; } /* 飲食需求 */
+    #memberTable th:nth-child(17) { width: 280px; } /* 備註 */
+    #memberTable th:nth-child(18) { width: 50px; }  /* 操作 */
+
+/* --- Phase 3: 預覽表格寬度控制 (利用 nth-last-child 確保個人/團體通用) --- */
+    .preview-table th:nth-last-child(1) { width: 280px; } /* 備註 */
+    .preview-table th:nth-last-child(2) { width: 80px; } /* 飲食 */
+    .preview-table th:nth-last-child(3) { width: 120px; } /* 參加過 */
+    .preview-table th:nth-last-child(4) { width: 100px; }  /* 緊急電話 */
+    .preview-table th:nth-last-child(5) { width: 80px; } /* 關係 */
+    .preview-table th:nth-last-child(6) { width: 100px; } /* 聯絡人 */
+    .preview-table th:nth-last-child(7) { width: 100px; } /* 是否受洗 */
+    .preview-table th:nth-last-child(8) { width: 120px; } /* 是否為基督徒 */
+    .preview-table th:nth-last-child(9) { width: 140px; } /* 所屬教會 */
+    .preview-table th:nth-last-child(10) { width: 140px; }/* 升上年級 */
+    .preview-table th:nth-last-child(11) { width: 140px; }/* 學校 */
+    .preview-table th:nth-last-child(12) { width: 100px; }  /* 報名身分 */
+    .preview-table th:nth-last-child(13) { width: 250px; } /* 電子郵件 */
+    .preview-table th:nth-last-child(14) { width: 100px; }/* 手機 */
+    /*.preview-table th:nth-last-child(15) { width: 100px; } 身分證 */
+    .preview-table th:nth-last-child(15) { width: 100px; }  /* 生日 */ 
+    .preview-table th:nth-last-child(16) { width: 70px; } /* 性別 */
+    .preview-table th:nth-last-child(17) { width: 100px; } /* 姓名 */
+
+    /* 團體模式額外處理最左邊的第一欄(身份) */
+    .group-table th:first-child { width: 100px; }
+
+    th, td { padding: 12px; border-bottom: 1px solid var(--shine-gray); border-right: 1px solid var(--shine-gray); }
+    th { background: var(--shine-black); color: var(--shine-lime); font-weight: 900; position: sticky; top: 0; z-index: 2; }
+    .sticky-col { position: sticky; left: 0; z-index: 5; background: #fff !important; border-right: 4px solid var(--shine-black) !important; }
+
+    /* 紅框提示 */
+    .invalid { border: 2px solid var(--shine-red) !important; background-color: #fff8f8 !important; }
+
+    #memberPool { background: #333; padding: 25px; border: 3px solid black; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+    .pool-item { background: white; border: 2px solid black; padding: 8px 15px; font-weight: 900; cursor: pointer; }
+    .pool-item:hover { background: var(--shine-lime); }
+
+    .group-card { border: 3px solid var(--shine-black); padding: 20px; background: white; transition: 0.2s; }
+    .group-card.active-group { box-shadow: 8px 8px 0px var(--shine-lime); transform: translate(-4px, -4px); }
+
+    .btn { padding: 12px 25px; font-weight: 900; border: 2px solid var(--shine-black); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; text-transform: uppercase; }
+    .btn-next { background: var(--shine-black); color: var(--shine-lime); }
+    .btn-next:hover { background: var(--shine-lime); color: var(--shine-black); box-shadow: 6px 6px 0px var(--shine-black); transform: translate(-3px, -3px); }
+
+    .preview-bill { background: #f9f9f9; border: 2px dashed var(--shine-black); padding: 25px; font-family: monospace; line-height: 2; margin-top: 20px; }
+    .hidden { display: none !important; }
+
+    input, select { border: 2px solid var(--shine-black); padding: 12px; font-size: 16px; width: 100%; box-sizing: border-box; }
+    .form-group label { display: inline-block; font-weight: 900; margin-bottom: 8px; background: var(--shine-lime); padding: 2px 10px; }
+    
+    /* 副隊輔對齊修正 */
+    .g-sa label { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; cursor: pointer; }
+    .g-sa input[type="checkbox"] { width: 18px; height: 18px; margin: 0; cursor: pointer; }
+
+    /* 確保 Modal 蓋在最上層 */
+#noticeModal.modal {
+  display: none;        /* 預設隱藏 */
+  position: fixed;     /* 固定定位，不隨捲軸移動 */
+  z-index: 9999;       /* 數值越大越在上面，設 9999 確保蓋過導覽列 */
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;      /* 若內容過長可捲動 */
+  background-color: rgba(0,0,0,0.5); /* 半透明黑底 */
+}
+
+/* Modal 內容物置中 */
+#noticeModal .modal-content {
+  background-color: #fefefe;
+  margin: 10% auto;    /* 距離上方 10% */
+  padding: 20px;
+  border-radius: 8px;
+  width: 80%;
+  max-width: 600px;    /* 限制最大寬度 */
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+/* 彈窗標題列與關閉按鈕 */
+.modal-header {
+  display: flex;
+  justify-content: space-between; /* 讓標題在左，叉叉在右 */
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.close {
+  color: #aaa;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.close:hover {
+  color: #000; /* 滑鼠移上去變黑色比較明顯 */
+  text-decoration: none;
+}
+.modal-body {
+  max-height: 70vh; 
+  overflow-y: auto;
+}
+
+/* 強調格式代碼 */
+code {
+  background-color: #f1f1f1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: #c7254e;
+  font-family: monospace;
+}
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header-area">
+    <h2>WE R ONE 2026 臺南場營會報名系統</h2>
+    <div style="background:var(--shine-light); padding:20px; border:3px solid var(--shine-black); display:flex; align-items:center; gap:15px; margin-bottom:30px;">
+      <label style="font-weight:900;">報名管道：</label>
+      <select id="modeSelect" onchange="toggleMode()" style="width: auto;">
+        <option value="single">個人報名 (單人)</option>
+        <option value="group">團體報名 (多人/匯入)</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="stepperArea" class="stepper hidden">
+    <div id="step1-tag" class="step active">1. 成員登錄</div>
+    <div id="step2-tag" class="step">2. 分配小組</div>
+    <div id="step3-tag" class="step">3. 預覽確認</div>
+  </div>
+
+  <form id="regForm" onsubmit="return false;">
+    <div id="contactInfo" class="hidden" style="border: 3px solid var(--shine-black); border-left: 15px solid var(--shine-lime); padding: 25px; margin-bottom: 30px; background: white;">
+      <h4 style="margin:0 0 15px 0; font-weight:900;">團體聯絡窗口資訊</h4>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px;">
+        <div class="form-group"><label>姓名</label><input type="text" id="contactName" class="v-req"></div>
+        <div class="form-group"><label>手機</label><input type="tel" id="contactPhone" class="v-req tel-auto"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="contactEmail" class="v-req"></div>
+      </div>
+    </div>
+
+    <div id="phase1">
+      <div id="singleView" style="display: flex; flex-direction: column; gap: 40px;">
+  
+  <div class="form-section">
+    <div class="section-title">個人資料</div>
+    <div class="grid-row">
+      <div class="form-group"><label>姓名</label><input type="text" name="name" class="single-in v-req"></div>
+      <div class="form-group"><label>性別</label><select name="gender" class="single-in v-req"><option value="">請選擇</option><option>男</option><option>女</option></select></div>
+      <div class="form-group"><label>生日</label><input type="date" name="birthday" class="single-in v-req"></div>
+      <!-- <div class="form-group"><label>身分證字號</label><input type="text" name="idCard" class="single-in v-req"></div> -->
+      <div class="form-group"><label>手機</label><input type="tel" name="phone" class="single-in v-req tel-auto" placeholder="09XX-XXXXXX"></div>
+      <div class="form-group"><label>電子郵件</label><input type="email" name="email" class="single-in v-req"></div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-title">參與身分</div>
+    <div class="grid-row">
+      <div class="form-group"><label>報名身分</label>
+        <select name="role" class="single-in v-req">
+          <option value="">請選擇</option><option>國中</option><option>高中職</option><option>大專</option>
+        </select>
+      </div>
+      <div class="form-group"><label>就讀學校</label><input type="text" name="school" class="single-in v-req"></div>
+      <div class="form-group"><label>升上年級</label><input type="text" name="grade" class="single-in v-req" placeholder="如：高二"></div>
+      <div class="form-group"><label>所屬教會</label><input type="text" name="church" class="single-in v-req"></div>
+      <div class="form-group"><label>是否為基督徒</label>
+        <select name="isChristian" class="single-in v-req"><option value="">請選擇</option><option>是</option><option>否</option></select>
+      </div>
+      <div class="form-group"><label>是否已受洗</label>
+        <select name="isBaptized" class="single-in v-req"><option value="">請選擇</option><option>是</option><option>否</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-title">緊急聯絡人</div>
+    <div class="grid-row">
+      <div class="form-group"><label>緊急聯絡人</label><input type="text" name="iceName" class="single-in v-req"></div>
+      <div class="form-group"><label>緊急連絡人關係</label><input type="text" name="iceRel" class="single-in v-req" placeholder="如：父女"></div>
+      <div class="form-group"><label>緊急聯絡人電話</label><input type="tel" name="icePhone" class="single-in v-req tel-auto" placeholder="09XX-XXXXXX"></div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-title">營會行政</div>
+    <div class="grid-row">
+      <div class="form-group"><label>曾參加SHINE營會</label><select name="isAttended" class="single-in v-req"><option value="">請選擇</option><option>是</option><option>否</option></select></div>
+      <div class="form-group"><label>飲食需求</label>
+        <select name="dietary" class="single-in v-req"><option value="">請選擇</option><option>葷食</option><option>蛋奶素</option><option>純素</option></select>
+      </div>
+      <div class="form-group" style="grid-column: 1 / -1;">
+        <label>編入教會與其他需求備註</label>
+        <input type="text" name="medical" class="single-in v-req" placeholder="若有欲編入教會，或是飲食、身體狀況等其他需求請填寫於此，若無請填無">
+      </div>
+    </div>
+  </div>
+
+</div>
+
+      <div id="groupView" class="hidden">
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+          <button type="button" class="btn" style="background:#fff3cd; border:1px solid #ffeeba; color:#856404;" onclick="openNoticeModal()">⚠️ 團報注意事項</button>
+          <button type="button" class="btn" style="background:white;" onclick="document.getElementById('excelFile').click()">📎 匯入 Excel</button>
+          <input type="file" id="excelFile" class="hidden" accept=".xlsx,.xls" onchange="handleExcel(this)">
+          <button type="button" class="btn" style="background:white;" onclick="addGroupRow()">＋ 新增成員</button>
+        </div>
+        <div class="table-responsive">
+          <table id="memberTable">
+            <thead>
+  <tr>
+    <th class="sticky-col">姓名</th>
+    <th>性別</th><th>生日</th><th>手機</th><th>Email</th>
+    <th>報名身分</th><th>學校或單位</th><th>升上年級</th><th>所屬教會</th>
+    <th>是否為基督徒</th><th>是否受洗</th>
+    <th>緊急聯絡人</th><th>關係</th><th>緊急連絡電話</th>
+    <th>曾參加SHINE</th><th>飲食需求</th><th>特殊狀況</th>
+    <th>操作</th>
+  </tr>
+</thead>
+            <tbody id="memberBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <button type="button" class="btn btn-next" style="float:right; margin-top:30px;" onclick="handleP1Next()">下一步 ➔</button>
+    </div>
+
+    <div id="phase2" class="hidden">
+      <h4 style="font-weight:900;">待分配名單 (點選姓名)</h4>
+      <div id="memberPool"></div>
+      <div id="groupGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); gap:25px; margin-top:20px;"></div>
+      <button type="button" class="btn" style="margin-top:20px; background:white;" onclick="createNewGroup()">＋ 建立新小組</button>
+      <div style="margin-top:40px; border-top:2px solid black; padding-top:20px; display:flex; justify-content:space-between;">
+        <button type="button" onclick="goBack(1)" style="background:none; border:none; text-decoration:underline; cursor:pointer; font-weight:900;">⬅ 返回登錄名單</button>
+        <button type="button" class="btn btn-next" onclick="checkGroupNameAndGoPhase3()">最後一步：預覽確認 ➔</button>
+      </div>
+    </div>
+
+    <div id="phase3" class="hidden">
+      <h3 style="border-left:10px solid black; padding-left:15px; font-weight:900;">最終資料檢查</h3>
+      <div id="finalPreviewArea"></div>
+      <h3 style="margin-top:40px; border-left:10px solid black; padding-left:15px; font-weight:900;">應繳金額明細</h3>
+      <div id="billArea" class="preview-bill"></div>
+      <div style="margin-top:40px; display:flex; justify-content:space-between; align-items:center;">
+        <button type="button" id="prevBtnP3" onclick="handleP3Back()" style="background:none; border:none; text-decoration:underline; cursor:pointer; font-weight:900;">⬅ 返回上一頁</button>
+        <button type="button" id="finalSubmitBtn" class="btn btn-next" style="width:300px;" onclick="finalSubmit()">確認無誤，送出報名</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div id="successModal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+  <div style="background: white; border: 4px solid var(--shine-black); padding: 40px; max-width: 450px; width: 90%; text-align: center; box-shadow: 15px 15px 0px var(--shine-lime);">
+    <div style="font-size: 60px; margin-bottom: 20px;">🎉</div>
+    <h2 style="font-weight: 900; margin-bottom: 15px;">報名資料已送出！</h2>
+    <p style="font-weight: 600; line-height: 1.6; color: #555; margin-bottom: 30px;">
+      感謝您的參與！我們已收到您的報名申請。<br>
+      後續請留意 E-mail 報名確認信件。
+    </p>
+    <a href="https://www.shinetaiwan.com" target="_top" class="btn btn-next" style="text-decoration: none; width: 100%; box-sizing: border-box;">
+      回到 SHINE 官網
+    </a>
+  </div>
+</div>
+
+<div id="noticeModal" class="modal">
+  <div class="modal-content" style="max-width: 700px;"> <div class="modal-header">
+      <h3>團體報名注意事項</h3>
+      <span class="close" onclick="closeNoticeModal()">&times;</span>
+    </div>
+    <div class="modal-body" style="line-height: 1.6; color: #333; font-size: 15px;">
+      <p style="background: #e9ecef; padding: 8px 12px; border-left: 4px solid #007bff; font-weight: bold;">
+        📢 提醒<br>團報優惠：每滿 11 人可減免 1 人報名費（系統自動計算）。<br>早鳥優惠：05/06 前報名可享有早鳥折扣。
+      </p>
+      
+      <p><strong>📍 資料填寫格式規範：</strong></p>
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #dee2e6;">
+        <ul style="padding-left: 20px; margin: 0;">
+          <li><strong>標題列：</strong>為了正確抓取資料，<strong>第一列標題請勿更動</strong>。</li>
+          <li><strong>手機：</strong>格式為 <code>09XX-XXXXXX</code>（系統輸入時會自動加入符號）。</li>
+          <li><strong>生日：</strong>格式為 <code>YYYY-MM-DD</code>（例如：2026-03-11）。</li>
+          <li><strong>電子郵件：</strong>請填寫有效的 Email 地址。</li>
+          <li><strong>報名身分：</strong>限填 <code>國中</code>、<code>高中職</code>、<code>大專</code>、<code>社青</code>、<code>傳道</code>、<code>牧師</code>。</li>
+          <li><strong>就讀學校：</strong>若非在學生，可填寫目前服務單位。</li>
+          <li><strong>是非題：</strong>（基督徒/受洗/曾參加SHINE）選項僅限 <code>是</code>、<code>否</code>。</li>
+          <li><strong>飲食需求：</strong>選項有 <code>葷食</code>、<code>蛋奶素</code>、<code>純素</code>。</li>
+          <li><strong>特殊狀況：</strong>若有特殊需求（如其他素食需求、過敏、住宿等），請詳細填寫。</li>
+        </ul>
+      </div>
+
+      <p style="margin-top: 15px;"><strong>📍 小組分配：</strong></p>
+      <ul style="padding-left: 20px;">
+        <li>送出前請務必在第二階段完成「正/副隊輔」身分設定。</li>
+      </ul>
+
+      <p style="color: #d9534f; font-size: 0.9em; margin-top: 10px; font-weight: bold;">
+        * 若使用 Excel 匯入，請務必點擊下方按鈕下載並使用官方範本。
+      </p>
+    </div>
+    <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 15px; border-top: 1px solid #ddd;">
+      <a href="https://drive.google.com/uc?export=download&id=1ey7UEch2eBT1_WKq6OSyQpzLoYFMcI2N" target="_blank" class="btn" style="background:#28a745; color:white; text-decoration:none; padding: 8px 16px;">
+        📥 下載 Excel 範例
+      </a>
+      <button class="btn" style="background:#6c757d; color:white; padding: 8px 16px;" onclick="closeNoticeModal()">我了解了</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let memberData = [];
+  const PRICE = 3500, DISCOUNT = 400;
+
+  document.addEventListener('input', e => {
+  if (!window.isTelListenerAttached) {
+  document.addEventListener('input', e => {
+    const target = e.target;
+    if (target.classList.contains('tel-auto')) {
+      
+      // 1. 取得純數字，並限制在 10 碼
+      let v = target.value.replace(/\D/g, '').slice(0, 10);
+      
+      // 2. 格式化：只要超過 4 碼就插一個橫槓
+      let formatted = v;
+      if (v.length > 4) {
+        formatted = v.slice(0, 4) + '-' + v.slice(4);
+      }
+      
+      // 3. 關鍵修正：判斷如果值沒變，就不觸發更新
+      // 同時防止多個監聽器互相干擾
+      if (target.value !== formatted) {
+        target.value = formatted;
+      }
+    }
+    target.classList.remove('invalid');
+  });
+  window.isTelListenerAttached = true; // 標記已掛載
+}
+  e.target.classList.remove('invalid');
+});
+
+  // 開啟注意事項視窗
+function openNoticeModal() {
+  document.getElementById('noticeModal').style.display = 'block';
+}
+
+// 關閉注意事項視窗
+function closeNoticeModal() {
+  document.getElementById('noticeModal').style.display = 'none';
+}
+
+// 點擊視窗外部也可以關閉
+window.onclick = function(event) {
+  const modal = document.getElementById('noticeModal');
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
+}
+  function handleP3Back() {
+    const isSingle = (document.getElementById('modeSelect').value === 'single');
+    if (isSingle) {
+      goBack(1); // 個人報名回第一頁
+    } else {
+      goBack(2); // 團體報名回第二頁
+    }
+  }
+
+function toggleMode() {
+    const modeSelect = document.getElementById('modeSelect');
+    const isG = (modeSelect.value === 'group');
+
+    // 1. 顯示/隱藏區塊邏輯
+    document.getElementById('stepperArea').classList.toggle('hidden', !isG);
+    document.getElementById('contactInfo').classList.toggle('hidden', !isG);
+    document.getElementById('singleView').classList.toggle('hidden', isG);
+    document.getElementById('groupView').classList.toggle('hidden', !isG);
+
+    // 2. 【核心防呆】強制回到第一步
+    document.getElementById('phase1').classList.remove('hidden');
+    document.getElementById('phase2').classList.add('hidden');
+    document.getElementById('phase3').classList.add('hidden');
+    updateStep(1);
+
+    // 3. 【資料清空】確保變數與畫面完全乾淨
+    // 清空暫存陣列與小組狀態
+    memberData = []; 
+    if (typeof groupStates !== 'undefined') groupStates = {}; 
+
+    // 清空個人報名的所有輸入框
+    document.querySelectorAll('.single-in').forEach(input => {
+      input.value = "";
+    });
+
+    // 清空團體報名的表格內容
+    const memberBody = document.getElementById('memberBody');
+    if (memberBody) {
+      memberBody.innerHTML = "";
+    }
+
+    // 4. 如果切換到團體模式，自動補上一行空白行
+    if (isG) {
+      addGroupRow();
+    }
+  }
+
+  function validate() {
+  let isValid = true;
+  const mode = document.getElementById('modeSelect').value;
+  memberData = [];
+  
+  if(mode === 'single') {
+    let obj = {};
+    document.querySelectorAll('.single-in').forEach(i => {
+      obj[i.name] = i.value;
+      if(i.classList.contains('v-req') && !i.value) { i.classList.add('invalid'); isValid = false; }
+    });
+    // 個人電話檢查
+    if(isValid && !/^09\d{2}-\d{6}$/.test(obj.phone)) { document.getElementsByName('phone')[0].classList.add('invalid'); isValid = false; }
+    if(isValid && !/^09\d{2}-\d{6}$/.test(obj.icePhone)) { document.getElementsByName('icePhone')[0].classList.add('invalid'); isValid = false; }
+    memberData.push(obj);
+  } else {
+    // 1. 檢查窗口資訊
+    document.querySelectorAll('#contactInfo .v-req').forEach(i => { if(!i.value){ i.classList.add('invalid'); isValid = false; }});
+    
+    // 2. 檢查每一行成員
+    const rows = document.querySelectorAll('.member-row');
+    rows.forEach((row, idx) => {
+      let obj = { id: 'm_'+idx };
+      row.querySelectorAll('input, select').forEach(i => {
+        obj[i.name] = i.value;
+        if(!i.value) { i.classList.add('invalid'); isValid = false; }
+      }); // <--- 之前漏掉了這個閉合括號！
+
+      // 團體電話檢查
+      if(obj.phone && !/^09\d{2}-\d{6}$/.test(obj.phone)) { row.querySelector('[name="phone"]').classList.add('invalid'); isValid = false; }
+      if(obj.icePhone && !/^09\d{2}-\d{6}$/.test(obj.icePhone)) { row.querySelector('[name="icePhone"]').classList.add('invalid'); isValid = false; }
+      
+      memberData.push(obj);
+    }); // 這裡對應 rows.forEach
+  }
+  
+  if(!isValid) alert("請檢查紅框欄位，確保所有欄位皆有填寫且格式正確。");
+  return isValid;
+}
+
+function handleP1Next() {
+  if(!validate()) return;
+  const mode = document.getElementById('modeSelect').value;
+  
+  if(mode === 'group') {
+    // 核心修正：同步已分配名單，避免回頭修改後人跑出來
+    const currentNames = memberData.map(m => m.name);
+    
+    // 1. 清理 groupStates 中已經不存在的人（如果在第一頁被刪掉）
+    Object.keys(groupStates).forEach(gid => {
+      if(groupStates[gid].leader && !currentNames.includes(groupStates[gid].leader)) {
+        groupStates[gid].leader = "";
+      }
+      groupStates[gid].subs = groupStates[gid].subs.filter(s => currentNames.includes(s));
+    });
+
+    // 2. 標記已經在小組內的人，不讓他們回流到待選區 (Pool)
+    document.querySelectorAll('.group-card').forEach(card => {
+      const gid = card.id;
+      const groupMems = card.querySelectorAll('.gm-list span');
+      const namesInGroup = Array.from(groupMems).map(s => s.innerText);
+      
+      memberData.forEach(m => {
+        if(namesInGroup.includes(m.name)) {
+          m.assignedGroup = gid; // 鎖定組別
+        }
+      });
+    });
+
+    document.getElementById('phase1').classList.add('hidden');
+    document.getElementById('phase2').classList.remove('hidden');
+    updateStep(2); 
+    renderPool();
+    // 刷新各組內的顯示，確保名字與最新資料同步
+    document.querySelectorAll('.group-card').forEach(card => renderGMem(card.id));
+  } else { 
+    goPhase3(); 
+  }
+}
+
+  function checkGroupNameAndGoPhase3() {
+    // 1. 檢查「待分配區」是否還有殘留成員
+    const pool = document.getElementById('memberPool');
+  
+    // 檢查 pool 是否存在，且裡面是否還有 class 為 pool-item 的元素
+    if (pool && pool.querySelectorAll('.pool-item').length > 0) {
+    const remainingItems = pool.querySelectorAll('.pool-item');
+    let names = [];
+    remainingItems.forEach(item => names.push(item.innerText.trim()));
+    
+    alert("⚠️ 尚未完成編組\n\n以下成員還在「待分配區」：\n" + names.join('、') + "\n\n請先選中小組卡片，再點擊成員姓名完成分配。");
+    return; // 攔截，不執行 goPhase3
+    }
+    
+    // 2. 原有的檢查小組名稱不重複邏輯
+    const cards = document.querySelectorAll('.group-card');
+    const names = Array.from(cards).map(c => c.querySelector('.g-name').value.trim());
+    const uniqueNames = new Set(names);
+    if(uniqueNames.size !== names.length) {
+      alert("⚠️ 錯誤：小組名稱不能重複，請修正。");
+      return;
+    }
+
+    // 3. 通過以上所有檢查，才進入第三階段
+    goPhase3();
+  }
+
+  function goPhase3() {
+    document.getElementById('phase1').classList.add('hidden');
+    document.getElementById('phase2').classList.add('hidden');
+    document.getElementById('phase3').classList.remove('hidden');
+    
+    updateStep(3); 
+    renderFinalPreview();
+  }
+
+  function renderFinalPreview() {
+  const area = document.getElementById('finalPreviewArea');
+  const mode = document.getElementById('modeSelect').value;
+  let html = "";
+  
+  // 完整標題列（不含身份）
+  const commonHeader = `<th>姓名</th><th>性別</th><th>生日</th><th>手機</th><th>Email</th><th>報名身分</th><th>學校或單位</th><th>升上年級</th><th>所屬教會</th><th>是否為基督徒</th><th>是否受洗</th><th>緊急聯絡人</th><th>關係</th><th>緊急聯絡電話</th><th>曾參加SHINE</th><th>飲食需求</th><th>特殊需求與備註</th>`;
+
+  if(mode === 'single') {
+    // 個人報名：直接使用 commonHeader，不出現身份欄位
+    html = `<div class="table-responsive"><table class="preview-table"><thead><tr>${commonHeader}</tr></thead><tbody>`;
+    const m = memberData[0];
+    html += `<tr>
+  <td>${m.name}</td><td>${m.gender}</td><td>${m.birthday}</td><td>${m.phone}</td><td>${m.email}</td>
+  <td>${m.role}</td><td>${m.school}</td><td>${m.grade}</td><td>${m.church}</td><td>${m.isChristian}</td><td>${m.isBaptized}</td>
+  <td>${m.iceName}</td><td>${m.iceRel}</td><td>${m.icePhone}</td><td>${m.isAttended}</td><td>${m.dietary}</td><td>${m.medical||'無'}</td>
+</tr>`;
+    html += `</tbody></table></div>`;
+  } else {
+    // 團體報名：手動加入「身份」欄位
+    document.querySelectorAll('.group-card').forEach(card => {
+      const gid = card.id, gName = card.querySelector('.g-name').value;
+      const l1 = card.querySelector('.g-l1').value;
+      const subs = Array.from(card.querySelectorAll('.g-sub:checked')).map(i => i.value);
+      let ms = memberData.filter(m => m.assignedGroup === gid);
+
+      // --- 新增：排序邏輯 ---
+      ms.sort((a, b) => {
+        const getPriority = (name) => {
+          if (name === l1) return 1;          // 正隊輔最優先
+          if (subs.includes(name)) return 2;  // 副隊輔次之
+          return 3;                          // 一般組員最後
+        };
+        return getPriority(a.name) - getPriority(b.name);
+      });
+
+      html += `<div style="margin-bottom:30px;"><strong style="background:var(--shine-lime); padding:5px 15px; border:2px solid black;">${gName}</strong><div class="table-responsive"><table class="preview-table group-table"><thead><tr><th>身份</th>${commonHeader}</tr></thead><tbody>`;
+      
+      ms.forEach(m => {
+        // --- 修改：角色判斷與顯示邏輯 ---
+        let role = "";
+        if (m.name === l1) {
+          role = "正隊輔";
+        } else if (subs.includes(m.name)) {
+          role = "副隊輔";
+        } else {
+          role = ""; // 組員不呈現身分字樣
+        }
+
+        m.groupName = gName;           // 對應後端的 member.groupName
+        m.groupRole = role; // 對應後端的 member.groupRole (組員會是空字串)
+
+        html += `<tr><td><b>${role}</b></td><td>${m.name}</td><td>${m.gender}</td><td>${m.birthday}</td><td>${m.phone}</td><td>${m.email}</td><td>${m.role}</td><td>${m.school}</td><td>${m.grade}</td><td>${m.church}</td><td>${m.isChristian}</td><td>${m.isBaptized}</td><td>${m.iceName}</td><td>${m.iceRel}</td><td>${m.icePhone}</td><td>${m.isAttended}</td><td>${m.dietary}</td><td>${m.medical||'無'}</td></tr>`;
+      });
+      html += `</tbody></table></div></div>`;
+    });
+  }
+  area.innerHTML = html;
+  calculateBill();
+}
+
+  function calculateBill() {
+  const n = memberData.length;
+  if (n === 0) return; // 防呆：如果沒成員就不計算
+
+  const mode = document.getElementById('modeSelect').value;
+  
+  // --- 早鳥截止邏輯設定 ---
+  const PRICE = 3500; 
+  const DEADLINE = new Date('2026/05/06 23:59:59'); // 設定截止日
+  const now = new Date();
+  
+  // 如果現在時間小於等於截止日，折扣為 500，否則為 0
+  const currentDiscount = (now <= DEADLINE) ? 400 : 0; 
+  // -----------------------
+
+  const free = (mode === 'group' ? Math.floor(n / 11) : 0);
+  const early = n - free; // 這裡的 early 代表符合折扣資格的人數
+  const total = (n * PRICE) - (free * PRICE) - (early * currentDiscount);
+  
+  // 解決小數落差邏輯 (分攤到各個 member 物件中)
+  let avg = Math.floor(total / n);
+  let diff = total - (avg * n);
+  memberData.forEach((m, idx) => {
+    m.fee = (idx === n - 1) ? (avg + diff) : avg;
+  });
+
+  // 動態生成早鳥折扣的顯示文字
+  const discountText = currentDiscount > 0 
+    ? `早鳥折扣 (${currentDiscount} x ${early}人)` 
+    : `<span style="text-decoration:line-through; color:#999;">早鳥折扣 (已截止)</span>`;
+
+  document.getElementById('billArea').innerHTML = `
+    <div>原始總額 (${PRICE.toLocaleString()} x ${n}人) : <span style="float:right;">NT$ ${(n*PRICE).toLocaleString()}</span></div>
+    <div style="color:var(--shine-red);">團報優惠 (減免 ${free} 人) : <span style="float:right;">- NT$ ${(free*PRICE).toLocaleString()}</span></div>
+    <div style="color:var(--shine-red);">${discountText} : <span style="float:right;">- NT$ ${(early*currentDiscount).toLocaleString()}</span></div>
+    <hr style="border:1px solid black;">
+    <div style="font-size:1.5em; font-weight:900;">
+      應付總額 : <span style="float:right;">NT$ ${total.toLocaleString()}</span>
+    </div>
+    ${currentDiscount === 0 ? '<div style="font-size:0.8em; color:gray; text-align:right;">※ 目前已過早鳥優惠期間</div>' : ''}
+  `;
+}
+
+  async function finalSubmit() {
+  const btn = document.getElementById('finalSubmitBtn');
+  const modal = document.getElementById('successModal'); // 成功視窗
+  
+  btn.disabled = true; 
+  btn.innerText = "資料送出中...";
+
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwiA7CGTl_ZOfN8fqsm_56DzTrfsm825qUvfiuX7hzexk5r2o5dqsLS2eREnJtV7-v-/exec"; // 記得替換！
+
+  const payload = {
+    mode: document.getElementById('modeSelect').value,
+    contact: { 
+      name: document.getElementById('contactName').value, 
+      phone: document.getElementById('contactPhone').value, 
+      email: document.getElementById('contactEmail').value 
+    },
+    members: memberData 
+  };
+
+  try {
+    // 執行送出
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors', 
+      cache: 'no-cache',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    // --- 成功後的處理邏輯 ---
+    
+    // 1. 隱藏送出按鈕
+    btn.classList.add('hidden');
+    
+    // 2. 顯示成功視窗
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex'; 
+    
+    // 3. (選填) 如果你有設置「關閉視窗」按鈕，確保它的功能正常
+    // 例如：document.getElementById('closeModalBtn').onclick = () => { location.reload(); };
+
+    console.log("資料已成功送出至後端");
+
+  } catch (error) {
+    console.error("Submission Error:", error);
+    alert("抱歉，送出過程發生錯誤，請截圖並聯繫主辦單位。");
+    btn.disabled = false;
+    btn.innerText = "確認無誤，送出報名";
+  }
+}
+
+  let groupStates = {}; // 暫存小組的隊輔選中狀態
+
+  function renderPool() {
+    const p = document.getElementById('memberPool'); p.innerHTML = '';
+    memberData.forEach(m => {
+      if(!m.assignedGroup) {
+        const d = document.createElement('div'); d.className = 'pool-item'; d.innerText = m.name;
+        d.onclick = () => { if(!activeGid) return alert("請先選中小組卡片"); m.assignedGroup = activeGid; renderPool(); renderGMem(activeGid); };
+        p.appendChild(d);
+      }
+    });
+  }
+  
+  function createNewGroup() {
+    const id = "g_"+Date.now(); const div = document.createElement('div'); div.id = id; div.className = 'group-card';
+    groupStates[id] = { leader: "", subs: [] };
+    div.onclick = () => { activeGid = id; document.querySelectorAll('.group-card').forEach(c => c.classList.toggle('active-group', c.id===id)); };
+    div.innerHTML = `<div style="display:flex; justify-content:space-between;"><input type="text" class="g-name" value="新小組" style="width:70%; border:none; border-bottom:2px solid black; font-weight:900;"> <button onclick="deleteGroup('${id}')">✕</button></div><div class="gm-list" style="min-height:30px; margin:15px 0; border:1px dashed #ccc; display:flex; flex-wrap:wrap; gap:5px;"></div><div style="font-size:12px; font-weight:900;">正隊輔: <select class="g-l1" onchange="saveGState('${id}')"><option value="">請選擇</option></select><div class="g-sa" style="margin-top:8px;"></div></div>`;
+    document.getElementById('groupGrid').appendChild(div); div.click();
+  }
+
+  function deleteGroup(id) {
+    document.getElementById(id).remove();
+    memberData.forEach(m => { if(m.assignedGroup === id) m.assignedGroup = null; });
+    delete groupStates[id];
+    renderPool();
+  }
+
+  function saveGState(id) {
+    const card = document.getElementById(id);
+    const leader = card.querySelector('.g-l1').value;
+    const subs = Array.from(card.querySelectorAll('.g-sub:checked')).map(i => i.value);
+    groupStates[id] = { leader, subs };
+    refreshSA(id);
+  }
+
+  function renderGMem(gid) {
+    const b = document.getElementById(gid).querySelector('.gm-list'); b.innerHTML = '';
+    const ms = memberData.filter(m => m.assignedGroup === gid);
+    ms.forEach(m => {
+      const s = document.createElement('span'); s.innerText = m.name; s.style="border:1px solid black; padding:3px 8px; background:#eee; font-weight:900; cursor:pointer;";
+      s.onclick = (e) => { e.stopPropagation(); m.assignedGroup = null; renderPool(); renderGMem(gid); };
+      b.appendChild(s);
+    });
+    
+    // 更新正隊輔下拉選單，並恢復先前的選中狀態
+    const sel = document.getElementById(gid).querySelector('.g-l1');
+    const oldLeader = groupStates[gid].leader;
+    sel.innerHTML = '<option value="">請選擇</option>' + ms.map(m => `<option ${m.name===oldLeader?'selected':''}>${m.name}</option>`).join('');
+    
+    refreshSA(gid);
+  }
+
+  function refreshSA(gid) {
+    const card = document.getElementById(gid), sa = card.querySelector('.g-sa'), leader = card.querySelector('.g-l1').value;
+    const ms = memberData.filter(m => m.assignedGroup===gid && m.name !== leader);
+    const oldSubs = groupStates[gid].subs;
+    
+    sa.innerHTML = '副隊輔 (至多2位):<br>' + ms.map(m => `
+      <label><input type="checkbox" class="g-sub" value="${m.name}" ${oldSubs.includes(m.name)?'checked':''} onchange="saveGState('${gid}'); limitSub(this)"> ${m.name}</label>
+    `).join('');
+    
+    limitSub(sa.querySelector('.g-sub')); // 重新套用禁用邏輯
+  }
+
+  function limitSub(el) {
+    if(!el) return;
+    const p = el.closest('.g-sa'), checked = p.querySelectorAll('.g-sub:checked');
+    p.querySelectorAll('.g-sub:not(:checked)').forEach(i => i.disabled = (checked.length >= 2));
+  }
+
+  let activeGid = null;
+  function updateStep(s) { document.querySelectorAll('.step').forEach((el, idx) => el.classList.toggle('active', (idx+1)===s)); }
+  function goBack(p) { document.getElementById('phase3').classList.add('hidden'); document.getElementById('phase2').classList.toggle('hidden', p!==2); document.getElementById('phase1').classList.toggle('hidden', p!==1); updateStep(p); }
+  
+  function addGroupRow(data={}) {
+  const tr = document.createElement('tr'); tr.className = 'member-row';
+  tr.innerHTML = `
+    <td class="sticky-col"><input type="text" name="name" value="${data.姓名||''}"></td>
+    <td><select name="gender"><option value="">請選擇</option><option ${data.性別==='男'?'selected':''}>男</option><option ${data.性別==='女'?'selected':''}>女</option></select></td>
+    <td><input type="date" name="birthday" value="${formatDate(data.生日)}"></td>
+    
+    <td><input type="tel" name="phone" class="tel-auto" value="${data.手機||''}"></td>
+    <td><input type="email" name="email" value="${data.電子郵件||''}"></td>
+    <td><select name="role"><option value="">請選擇</option><option ${data.報名身分==='國中'?'selected':''}>國中</option><option ${data.報名身分==='高中職'?'selected':''}>高中職</option><option ${data.報名身分==='大專'?'selected':''}>大專</option><option ${data.報名身分==='社青'?'selected':''}>社青</option><option ${data.報名身分==='傳道'?'selected':''}>傳道</option><option ${data.報名身分==='牧師'?'selected':''}>牧師</option></select></td>
+    <td><input type="text" name="school" value="${data.就讀學校||''}"></td>
+    <td><input type="text" name="grade" value="${data.升上年級||''}"></td>
+    <td><input type="text" name="church" value="${data.所屬教會||''}"></td>
+    <td><select name="isChristian"><option value="">請選擇</option><option ${data.是否為基督徒==='是'?'selected':''}>是</option><option ${data.是否為基督徒==='否'?'selected':''}>否</option></select></td>
+    <td><select name="isBaptized"><option value="">請選擇</option><option ${data.是否已受洗==='是'?'selected':''}>是</option><option ${data.是否已受洗==='否'?'selected':''}>否</option></select></td>
+    <td><input type="text" name="iceName" value="${data.緊急聯絡人||''}"></td>
+    <td><input type="text" name="iceRel" value="${data.緊急連絡人關係||''}"></td>
+    <td><input type="tel" name="icePhone" class="tel-auto" value="${data.緊急聯絡人電話||''}"></td>
+    <td><select name="isAttended"><option value="">請選擇</option><option ${data.曾參加SHINE營會==='是'?'selected':''}>是</option><option ${data.曾參加SHINE營會==='否'?'selected':''}>否</option></select></td>
+    <td><select name="dietary"><option value="">請選擇</option><option ${data.飲食需求==='葷食'?'selected':''}>葷食</option><option ${data.飲食需求==='蛋奶素'?'selected':''}>蛋奶素</option><option ${data.飲食需求==='純素'?'selected':''}>純素</option></select></td>
+    <td><input type="text" name="medical" value="${data.特殊狀況與注意事項||'無'}"></td>
+    <td><button type="button" onclick="this.closest('tr').remove()" style="color:red; border:none; background:none; cursor:pointer; font-weight:900;">✕</button></td>
+  `;
+  document.getElementById('memberBody').appendChild(tr);
+}
+  function formatDate(v) { if(!v) return ''; if(typeof v === 'number') return new Date((v-25569)*86400*1000).toISOString().split('T')[0]; return v; }
+  function handleExcel(i) {
+    const r = new FileReader(); r.onload = e => {
+      const wb = XLSX.read(e.target.result, {type:'binary'});
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      document.getElementById('memberBody').innerHTML = ''; data.forEach(d => addGroupRow(d));
+    }; r.readAsBinaryString(i.files[0]);
+  }
+  window.onload = toggleMode;
+  
+</script>
+</body>
+</html>
+
+
+
