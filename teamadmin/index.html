@@ -263,7 +263,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbz1mjEqg-2j6tPY86xRES46
 async function callApi(action, payload) {
   const response = await fetch(API_URL, {
     method: 'POST',
-    body: JSON.stringify({ action, payload })
+    body: JSON.stringify({ action: action, payload: payload })
   });
   const res = await response.json();
   if (!res.success) throw new Error(res.message);
