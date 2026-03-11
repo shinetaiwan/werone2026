@@ -797,28 +797,32 @@ function removeFromGroup(rowId) {
 }
 
 function renameGroup(oldName, newName) {
-  // 1. 基本檢查：若名字沒變或為空則跳過
   const trimmedNewName = newName.trim();
   if (!trimmedNewName || oldName === trimmedNewName) return;
 
   console.log(`[重新命名] 從 ${oldName} 改為 ${trimmedNewName}`);
 
-  // 2. 找出受影響成員並更新暫存
   let affectedCount = 0;
   fullData.forEach(m => {
+    // 取得該學員目前的組名（優先看暫存，再看原始資料）
     const pending = changedRows.get(m.row);
     const currentGroupName = (pending && pending.group !== undefined) ? pending.group : m.group;
 
     if (currentGroupName === oldName) {
-      if (!changedRows.has(m.row)) {
-        changedRows.set(m.row, { row: m.row });
-      }
-      changedRows.get(m.row).group = trimmedNewName;
+      // 關鍵優化：取得「現有的暫存資料」或「建立基礎物件」
+      const existingData = changedRows.get(m.row) || { row: m.row };
+      
+      // 使用展開運算子合併資料，確保不洗掉已有的房號或職稱
+      changedRows.set(m.row, {
+        ...existingData,
+        group: trimmedNewName
+      });
+      
       affectedCount++;
     }
   });
 
-  // 3. 更新虛擬小組清單 (這是維持介面不跳掉的關鍵)
+  // 3. 更新虛擬小組清單
   const vIdx = virtualGroups.indexOf(oldName);
   if (vIdx > -1) {
     virtualGroups[vIdx] = trimmedNewName;
@@ -830,17 +834,19 @@ function renameGroup(oldName, newName) {
   }
 
   // 5. 介面與狀態更新
+  // 修正點：只要有受影響人數，或是虛擬組名變了，就強制顯示儲存條
   if (affectedCount > 0 || vIdx > -1) {
     isDirty = true;
     const saveBar = document.getElementById('group-save-bar');
-    if (saveBar) saveBar.classList.remove('hidden');
+    if (saveBar) {
+      saveBar.classList.remove('hidden');
+    }
     console.log(`[成功] 已暫存 ${affectedCount} 位成員的組名變更`);
   }
   
-  // 6. 重新渲染
+  // 6. 重新渲染介面
   renderGroupInterface();
 }
-
 /**
  * 最終檢查與儲存
  */
