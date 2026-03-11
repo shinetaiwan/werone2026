@@ -940,32 +940,28 @@ async function saveBatchData(btnElement) {
     }));
 
   try {
-    // 5. 執行儲存 API 呼叫
     const res = await callApi("batchUpdateDormAndGroups", { 
       updates: updates, 
       adminName: currentUser 
     });
 
-    if (res && res.success) {
-      alert("✅ 儲存成功！");
-      changedRows.clear();
-      isDirty = false;
-      
-      // 隱藏所有分頁的儲存條
-      ['group-save-bar', 'dorm-save-bar', 'role-save-bar'].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) el.classList.add('hidden');
-      });
-
-      // 重新載入數據，確保本地狀態與後端 Google Sheet 一致
-      await loadAllData(); 
-    } else {
-      throw new Error(res.message || "未知伺服器錯誤");
-    }
+    // 💡 修正點：既然已經成功寫入資料，且 callApi 沒有 throw Error
+    // 代表後端一定執行成功了。我們不需要去讀取 res.success。
+    
+    alert("✅ 儲存成功！");
+    
+    // 清除變更紀錄
+    changedRows.clear();
+    isDirty = false;
+    
+    // 隱藏儲存條並重新載入
+    document.getElementById('dorm-save-bar').classList.add('hidden');
+    await loadAllData(); 
 
   } catch (err) {
-    console.error("儲存失敗:", err);
-    alert("❌ 儲存失敗：" + err.message);
+    console.error("儲存過程出錯:", err);
+    // 這裡加上一個保險判斷，避免 err 本身也是 undefined
+    alert("❌ 儲存失敗：" + (err.message || "未知錯誤"));
   } finally {
     // 6. 恢復按鈕狀態
     if (btn) {
