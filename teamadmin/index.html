@@ -674,16 +674,19 @@ function renderGroupInterface() {
   const unassigned = [];
 
   fullData.forEach(m => {
-    // 直接以 m.group 作為唯一的 Key，不再加上 _BK_ 
-    if (m.group && m.group.trim() !== "") {
-      if (!groupMap[m.group]) groupMap[m.group] = [];
-      groupMap[m.group].push(m);
+    // 💡 關鍵：檢查暫存區有沒有這筆 row 的變更，有的話優先採用
+    const pending = changedRows.get(m.row);
+    const currentGroupName = (pending && pending.group !== undefined) ? pending.group : m.group;
+
+    if (currentGroupName && currentGroupName.trim() !== "") {
+      if (!groupMap[currentGroupName]) groupMap[currentGroupName] = [];
+      groupMap[currentGroupName].push(m);
     } else {
       unassigned.push(m);
     }
   });
 
-  // 渲染左側池
+  // 渲染左側池 (保持不變)
   pool.innerHTML = unassigned.map(m => `
     <div class="pool-item" onclick="clickToAssignGroup(${m.row})" style="padding:10px; background:white; margin-bottom:5px; border:2px solid black; cursor:pointer;">
       <div style="font-weight:bold;">${m.name}</div>
@@ -691,41 +694,38 @@ function renderGroupInterface() {
     </div>
   `).join('');
 
-  // 1. 先進行穩定排序 (空組優先)
-const allGroups = Array.from(new Set([...Object.keys(groupMap), ...virtualGroups])).sort((a, b) => {
-  const membersA = groupMap[a] || [];
-  const membersB = groupMap[b] || [];
+  // 1. 先進行穩定排序 (這裡的 allGroups 會抓到最新的 currentGroupName)
+  const allGroups = Array.from(new Set([...Object.keys(groupMap), ...virtualGroups])).sort((a, b) => {
+    const membersA = groupMap[a] || [];
+    const membersB = groupMap[b] || [];
+    if (membersA.length === 0 && membersB.length > 0) return -1;
+    if (membersA.length > 0 && membersB.length === 0) return 1;
+    return a.localeCompare(b);
+  });
 
-  // 邏輯 A：如果 a 是空組，b 不是，則 a 往前排 (-1)
-  if (membersA.length === 0 && membersB.length > 0) return -1;
-  // 邏輯 B：如果 b 是空組，a 不是，則 b 往前排 (1)
-  if (membersA.length > 0 && membersB.length === 0) return 1;
+  // 2. 渲染卡片
+  display.innerHTML = allGroups.map(groupName => {
+    const ms = groupMap[groupName] || [];
+    const isSelected = (activeGroup === groupName);
 
-  // 邏輯 C：如果兩者都是空組，或兩者都有人，則按名稱排序
-  return a.localeCompare(b);
-});
-
-// 2. 排序完後，再接 .map 進行 HTML 渲染
-display.innerHTML = allGroups.map(groupName => {
-  const ms = groupMap[groupName] || [];
-  const isSelected = (activeGroup === groupName);
-
-  return `
-  <div class="item-card ${isSelected ? 'active-group' : ''}" onclick="setActiveGroup('${groupName}')">
-    <div class="card-header">
-      <input type="text" value="${groupName}" onchange="renameGroup('${groupName}', this.value)"
-             style="font-weight:900; border:none; background:transparent; width:100%; padding:0;" onclick="event.stopPropagation()">
-    </div>
-    <div style="flex-grow:1;">
-      ${ms.length > 0 ? ms.map(m => `
-        <div class="member-row">
-          <span>• ${m.name}</span>
-          <span style="color:var(--shine-red); cursor:pointer;" onclick="event.stopPropagation(); removeFromGroup(${m.row})">×</span>
-        </div>
-      `).join('') : '<div class="empty-placeholder">(空小組 - 點擊左側加入)</div>'}
-    </div>
-  </div>`;
-}).join('');
+    return `
+    <div class="item-card ${isSelected ? 'active-group' : ''}" onclick="setActiveGroup('${groupName}')">
+      <div class="card-header">
+        <input type="text" value="${groupName}" 
+               onchange="renameGroup('${groupName}', this.value)"
+               style="font-weight:900; border:none; background:transparent; width:100%; padding:0;" 
+               onclick="event.stopPropagation()">
+      </div>
+      <div style="flex-grow:1;">
+        ${ms.length > 0 ? ms.map(m => `
+          <div class="member-row">
+            <span>• ${m.name}</span>
+            <span style="color:var(--shine-red); cursor:pointer;" onclick="event.stopPropagation(); removeFromGroup(${m.row})">×</span>
+          </div>
+        `).join('') : '<div class="empty-placeholder">(空小組 - 點擊左側加入)</div>'}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function setActiveGroup(key) { activeGroup = key; renderGroupInterface(); document.getElementById('group-focus-info').innerText = "目標組別：" + key.split('_BK_')[0]; }
@@ -761,24 +761,40 @@ function removeFromGroup(row) {
   renderGroupInterface();
 }
 
-function renameGroup(oldKey, newName) {
-  // 當使用者修改卡片標題時，更新該卡片內所有人的 group 欄位
+function renameGroup(oldName, newName) {
+  if (!newName || oldName === newName) return;
+
+  // 1. 找出所有目前屬於「舊組名」的成員 (包含已經在暫存區被改成舊組名的人)
   fullData.forEach(m => {
-    let currentKey = m.group + "_BK_" + m.batch;
-    if (currentKey === oldKey) {
-      m.group = newName;
-      changedRows.add(m.row);
+    const pending = changedRows.get(m.row);
+    const currentGroupName = (pending && pending.group !== undefined) ? pending.group : m.group;
+
+    if (currentGroupName === oldName) {
+      // 2. 更新暫存區物件
+      if (!changedRows.has(m.row)) {
+        changedRows.set(m.row, { row: m.row });
+      }
+      changedRows.get(m.row).group = newName;
     }
   });
-  // 同步更新 virtualGroups
-  const idx = virtualGroups.indexOf(oldKey);
-  if (idx > -1) virtualGroups[idx] = newName + "_BK_手動新增_" + Date.now();
-  
+
+  // 3. 同步更新 virtualGroups (避免空組改名後在介面上消失)
+  const idx = virtualGroups.indexOf(oldName);
+  if (idx > -1) {
+    virtualGroups[idx] = newName;
+  }
+
+  // 4. 如果當前選中的是這組，也要更新選中標記
+  if (activeGroup === oldName) {
+    activeGroup = newName;
+  }
+
   isDirty = true;
   document.getElementById('group-save-bar').classList.remove('hidden');
+  
+  // 5. 重新渲染，這時 render 會從 changedRows 抓到新名字，輸入框就不會跳回去了
   renderGroupInterface();
 }
-
 
 /**
  * 最終檢查與儲存
