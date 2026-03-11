@@ -745,25 +745,53 @@ function createNewGroup() {
   }
 }
 
-function clickToAssignGroup(row) {
+function clickToAssignGroup(rowId) {
   if (!activeGroup) return alert("請先點選右側一個「小組卡片」！");
-  const m = fullData.find(x => x.row == row);
-  
-  m.group = activeGroup.split('_BK_')[0]; 
-  m.role = ""; // 移動後職稱回歸學員 (清空)
-  
-  changedRows.add(row);
+
+  // 1. 取得乾淨的小組名稱 (移除你之前的 _BK_ 標記)
+  const cleanGroupName = activeGroup.split('_BK_')[0];
+
+  // 2. 確保 changedRows (Map) 中有這筆 row 的空間
+  if (!changedRows.has(rowId)) {
+    changedRows.set(rowId, { row: rowId });
+  }
+
+  // 3. 同時更新多個欄位：組名與職稱 (Role)
+  const data = changedRows.get(rowId);
+  data.group = cleanGroupName;
+  data.teamRole = ""; // 這裡是對應你後端的職稱欄位名稱，請確認是 teamRole 還是 role
+
+  // 4. 狀態與 UI 更新
   isDirty = true;
-  document.getElementById('group-save-bar').classList.remove('hidden');
+  const saveBar = document.getElementById('group-save-bar');
+  if (saveBar) saveBar.classList.remove('hidden');
+
+  console.log(`[加入小組] Row ${rowId} 已分配至 ${cleanGroupName} 並清空職稱`);
+
+  // 5. 重新渲染
   renderGroupInterface();
 }
 
-function removeFromGroup(row) {
-  const m = fullData.find(x => x.row == row);
-  m.group = "";
-  changedRows.add(row);
+function removeFromGroup(rowId) {
+  // 1. 確保 changedRows 是 Map，並寫入變更
+  if (!changedRows.has(rowId)) {
+    changedRows.set(rowId, { row: rowId });
+  }
+  
+  // 2. 標記 group 為空字串
+  const data = changedRows.get(rowId);
+  data.group = ""; 
+
+  // 3. 狀態標記
   isDirty = true;
-  document.getElementById('group-save-bar').classList.remove('hidden');
+  
+  // 4. 顯示儲存條
+  const saveBar = document.getElementById('group-save-bar');
+  if (saveBar) saveBar.classList.remove('hidden');
+
+  console.log(`已將 Row ${rowId} 標記為移出小組`);
+
+  // 5. 重新渲染 (renderGroupInterface 會優先看 changedRows，所以這個人會出現在左邊)
   renderGroupInterface();
 }
 
