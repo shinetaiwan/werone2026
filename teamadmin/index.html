@@ -940,28 +940,34 @@ async function saveBatchData(btnElement) {
     }));
 
   try {
+    // 1. 呼叫 API (後端這時會寫入資料)
     const res = await callApi("batchUpdateDormAndGroups", { 
       updates: updates, 
       adminName: currentUser 
     });
 
-    // 💡 修正點：既然已經成功寫入資料，且 callApi 沒有 throw Error
-    // 代表後端一定執行成功了。我們不需要去讀取 res.success。
-    
+    // 💡 關鍵：不要再去判斷 if(res.success)，因為 callApi 沒報錯就代表成功
+    console.log("儲存成功，後端回傳：", res);
+
     alert("✅ 儲存成功！");
     
-    // 清除變更紀錄
+    // 2. 清除變更狀態
     changedRows.clear();
     isDirty = false;
     
-    // 隱藏儲存條並重新載入
-    document.getElementById('dorm-save-bar').classList.add('hidden');
+    // 3. 隱藏所有分頁的儲存條
+    ['group-save-bar', 'dorm-save-bar', 'role-save-bar'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.classList.add('hidden');
+    });
+
+    // 4. 重新載入，確保前端資料與資料庫一致
     await loadAllData(); 
 
   } catch (err) {
-    console.error("儲存過程出錯:", err);
-    // 這裡加上一個保險判斷，避免 err 本身也是 undefined
-    alert("❌ 儲存失敗：" + (err.message || "未知錯誤"));
+    // 只有當網路斷線或後端真正噴錯 (throw) 時才會進到這裡
+    console.error("儲存失敗的詳細診斷:", err);
+    alert("❌ 儲存失敗：" + (err.message || "伺服器連線異常"));
   } finally {
     // 6. 恢復按鈕狀態
     if (btn) {
