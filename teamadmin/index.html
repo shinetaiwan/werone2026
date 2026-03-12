@@ -258,7 +258,7 @@
 
 <script>
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbz1mjEqg-2j6tPY86xRES4643e6d3PTGINPeamhIn1qJIML66tMZbTQ6Fl7aPqJQNI/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxs84cLwYwwUBBioG3lBApqIExlkw6CtLRNk9B8w4m1Jh3HdBGvPAoAuH3Qflo-vPoE/exec';
 
 async function callApi(action, payload) {
   const response = await fetch(API_URL, {
@@ -273,6 +273,7 @@ async function callApi(action, payload) {
   // 1. 在 script 開頭定義變數
   let isDirty = false;
   let currentUser = "";
+  let currentPhone = ""; // 新增這行
   let fullData = [];
   let activeRoom = null; 
   let virtualRooms = []; 
@@ -317,7 +318,13 @@ async function callApi(action, payload) {
     // 所以能執行到這行，代表後端一定驗證成功了！
     // 我們不需要判斷 if(res)，因為 res 可能是 undefined (由 callApi 回傳的 res.data 導致)
     
-    currentUser = name; // 直接使用前端驗證過的 name
+    // 💡 登入成功後，把這兩把鑰匙記下來
+    currentUser = name;
+    currentPhone = phone; 
+    
+    // 如果想要重新整理頁面後不用重新登入，可以改存這裡：
+    sessionStorage.setItem('adminName', name);
+    sessionStorage.setItem('adminPhone', phone);
     
     // 切換 UI
     document.getElementById('auth-block').classList.add('hidden');
@@ -343,25 +350,26 @@ async function callApi(action, payload) {
   if (container) container.innerHTML = "⏳ 正在從雲端同步資料，請稍候...";
 
   try {
-    // 1. 呼叫 API
-    const res = await callApi("getAdminFullData", { adminName: currentUser });
-    fullData = res; // 直接賦值即可，因為 callApi 已經幫你拆開 data 層了
-    
-    // 2. 關鍵修正：從 res.data 中提取陣列
-    // 如果 res.data 存在就用它，否則才看 res 本身（預防萬一）
-    fullData = (res && res.data) ? res.data : res;
+    // 1. 取得儲存在變數或 sessionStorage 中的驗證資訊
+    // 建議在 handleAuth 成功時，就把這兩個值存好
+    const name = currentUser; 
+    const phone = currentPhone; 
 
-    // 3. 安全檢查：確保 fullData 必須是陣列，否則渲染會出錯
-    if (!Array.isArray(fullData)) {
-      console.error("取得的資料格式並非陣列:", fullData);
-      fullData = [];
-    }
+    // 2. 呼叫 API (務必帶上兩把鑰匙)
+    const res = await callApi("getAdminFullData", { 
+      adminName: name, 
+      adminPhone: phone 
+    });
+
+    // 3. 因為 callApi 已經 return res.data 了，所以 res 就是我們要的陣列
+    fullData = Array.isArray(res) ? res : [];
+    console.log("成功取得資料，數量：", fullData.length);
     
     // 4. 執行渲染
     renderUnifiedList();   
     renderGroupInterface(); 
     renderDormInterface();  
-    renderRoleInterface();  
+    renderRoleInterface();
     
     console.log("資料同步完成，共 " + fullData.length + " 筆。");
     
@@ -684,7 +692,8 @@ function removeFromRoom(row) {
     await callApi("updateMultipleColumns", { 
       row: row, 
       p: payload, 
-      adminName: currentUser 
+      adminName: sessionStorage.getItem('adminName'), // 從存儲抓
+      adminPhone: sessionStorage.getItem('adminPhone') // 從存儲抓
     });
 
     alert("✅ 資料更新成功！");
