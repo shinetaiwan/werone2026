@@ -214,41 +214,41 @@
       <div class="form-section">
         <div class="section-title">個人資料</div>
         <div class="grid-row">
-          <div class="form-group"><label>姓名</label><input type="text" id="m-name"></div>
-          <div class="form-group"><label>性別</label><select id="m-gender"><option>男</option><option>女</option></select></div>
-          <div class="form-group"><label>生日</label><input type="date" id="m-birthday"></div>
-          <div class="form-group"><label>手機</label><input type="tel" id="m-phone" maxlength="11" oninput="formatPhone(this)"></div>
-          <div class="form-group"><label>電子郵件</label><input type="email" id="m-email"></div>
+          <div class="form-group"><label>姓名</label><input type="text" id="m-name" class="v-req"></div>
+          <div class="form-group"><label>性別</label><select id="m-gender" class="v-req"><option>男</option><option>女</option></select></div>
+          <div class="form-group"><label>生日</label><input type="date" id="m-birthday" class="v-req"></div>
+          <div class="form-group"><label>手機</label><input type="tel" id="m-phone" maxlength="11" oninput="formatPhone(this)" class="v-req"></div>
+          <div class="form-group"><label>電子郵件</label><input type="email" id="m-email" class="v-req"></div>
         </div>
       </div>
 
       <div class="form-section">
         <div class="section-title">參與身分</div>
         <div class="grid-row">
-          <div class="form-group"><label>報名身分</label><select id="m-role"><option>國中</option><option>高中職</option><option>大專</option><option>社青</option><option>傳道</option><option>牧師</option></select></div>
-          <div class="form-group"><label>就讀學校</label><input type="text" id="m-school"></div>
-          <div class="form-group"><label>升上年級</label><input type="text" id="m-grade"></div>
-          <div class="form-group"><label>所屬教會</label><input type="text" id="m-church"></div>
-          <div class="form-group"><label>是否為基督徒</label><select id="m-isChristian"><option>是</option><option>否</option></select></div>
-          <div class="form-group"><label>是否已受洗</label><select id="m-isBaptized"><option>是</option><option>否</option></select></div>
+          <div class="form-group"><label>報名身分</label><select id="m-role" class="v-req"><option>國中</option><option>高中職</option><option>大專</option><option>社青</option><option>傳道</option><option>牧師</option></select></div>
+          <div class="form-group"><label>就讀學校</label><input type="text" id="m-school" class="v-req"></div>
+          <div class="form-group"><label>升上年級</label><input type="text" id="m-grade" class="v-req"></div>
+          <div class="form-group"><label>所屬教會</label><input type="text" id="m-church" class="v-req"></div>
+          <div class="form-group"><label>是否為基督徒</label><select id="m-isChristian" class="v-req"><option>是</option><option>否</option></select></div>
+          <div class="form-group"><label>是否已受洗</label><select id="m-isBaptized" class="v-req"><option>是</option><option>否</option></select></div>
         </div>
       </div>
 
       <div class="form-section">
         <div class="section-title">緊急聯絡人</div>
         <div class="grid-row">
-          <div class="form-group"><label>緊急聯絡人</label><input type="text" id="m-iceName"></div>
-          <div class="form-group"><label>緊急連絡人關係</label><input type="text" id="m-iceRel"></div>
-          <div class="form-group"><label>緊急聯絡人電話</label><input type="tel" id="m-icePhone" maxlength="11" oninput="formatPhone(this)"></div>
+          <div class="form-group"><label>緊急聯絡人</label><input type="text" id="m-iceName" class="v-req"></div>
+          <div class="form-group"><label>緊急連絡人關係</label><input type="text" id="m-iceRel" class="v-req"></div>
+          <div class="form-group"><label>緊急聯絡人電話</label><input type="tel" id="m-icePhone" maxlength="11" oninput="formatPhone(this)" class="v-req"></div>
         </div>
       </div>
 
       <div class="form-section">
         <div class="section-title">營會行政</div>
         <div class="grid-row">
-          <div class="form-group"><label>曾參加SHINE營會</label><select id="m-isAttended"><option>是</option><option>否</option></select></div>
-          <div class="form-group"><label>飲食需求</label><select id="m-dietary"><option>葷食</option><option>蛋奶素</option><option>純素</option></select></div>
-          <div class="form-group" style="grid-column: 1 / -1;"><label>特殊狀況與注意事項</label><input type="text" id="m-medical"></div>
+          <div class="form-group"><label>曾參加SHINE營會</label><select id="m-isAttended" class="v-req"><option>是</option><option>否</option></select></div>
+          <div class="form-group"><label>飲食需求</label><select id="m-dietary" class="v-req"><option>葷食</option><option>蛋奶素</option><option>純素</option></select></div>
+          <div class="form-group" style="grid-column: 1 / -1;"><label>特殊狀況與注意事項</label><input type="text" id="m-medical" class="v-req"></div>
         </div>
       </div>
 
@@ -611,6 +611,44 @@ function removeFromRoom(row) {
   function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
 
   async function submitEdit(btn) {
+  // --- 🚀 自動化必填檢查開始 ---
+  // 修正點：直接從整個 document 找，確保不會因為 modal 變數範圍漏掉
+  const requiredInputs = document.querySelectorAll('#editModal .v-req');
+  
+  // 診斷用：如果清空還能通過，請按 F12 看看這裡印出多少？
+  console.log("偵測到的必填欄位數量:", requiredInputs.length);
+
+  let missingLabels = [];
+  let firstErrorField = null;
+
+  requiredInputs.forEach(el => {
+    // 恢復樣式 (使用 style.borderColor 比較精準)
+    el.style.border = "2px solid black";
+
+    // 檢查值
+    const val = el.value ? el.value.trim() : "";
+    if (val === "" || val === "請選擇") {
+      // 嘗試抓取標籤文字
+      const labelElement = el.closest('.form-group')?.querySelector('label');
+      const labelText = labelElement ? labelElement.innerText.replace('*', '').trim() : (el.placeholder || "未命名欄位");
+      
+      missingLabels.push(labelText);
+      // 強制加上 !important 風格的紅色邊框
+      el.style.setProperty('border', '2px solid var(--shine-red)', 'important'); 
+      
+      if (!firstErrorField) firstErrorField = el;
+    }
+  });
+
+  if (missingLabels.length > 0) {
+    alert("⚠️ 請填寫以下必填欄位：\n• " + missingLabels.join("\n• "));
+    if (firstErrorField) {
+      firstErrorField.focus();
+    }
+    return; // 🛑 確定中斷
+  }
+  // --- 自動化必填檢查結束 ---
+    
   const row = document.getElementById('edit-row-index').value;
   
   // 安全起見：如果按鈕沒被傳入，則嘗試透過 event 抓取（相容舊寫法，但建議傳入 this）
