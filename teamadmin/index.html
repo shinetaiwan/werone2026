@@ -880,41 +880,46 @@ function renderRoleInterface() {
         </div>
         <div style="flex-grow:1;">
           ${gMembers.map(m => {
-            const isChief = m.teamRole === '正隊輔';
-            const isAssistant = m.teamRole === '副隊輔';
-            const isStudent = !m.teamRole || m.teamRole === '';
+          // 💡 關鍵修正：先看暫存區有沒有這個人的職稱改動
+          const pending = changedRows.get(m.row);
+          const currentRole = (pending && pending.teamRole !== undefined) ? pending.teamRole : m.role; 
+          // 註：請確認你的 fullData 原始職稱欄位是 .role 還是 .teamRole，下面暫統一用 currentRole
 
-            return `
-              <div class="member-row" style="padding:10px 0; border-bottom:2px solid #eee;">
-                <span style="font-weight:900; font-size:15px;">${m.name}</span>
-                <div style="display:flex; gap:8px;">
-                  <button onclick="toggleRole(${m.row}, '正隊輔')" 
-                    style="cursor:pointer; border:2px solid black; padding:4px 8px; font-weight:900;
-                    background: ${isChief ? '#ffcc00' : 'white'}; 
-                    box-shadow: ${isChief ? 'inset 2px 2px 0px rgba(0,0,0,0.2)' : '2px 2px 0px black'};">
-                    正
-                  </button>
-                  
-                  <button onclick="toggleRole(${m.row}, '副隊輔')" 
-                    style="cursor:pointer; border:2px solid black; padding:4px 8px; font-weight:900;
-                    background: ${isAssistant ? '#00d4ff' : 'white'}; 
-                    box-shadow: ${isAssistant ? 'inset 2px 2px 0px rgba(0,0,0,0.2)' : '2px 2px 0px black'};">
-                    副
-                  </button>
-                  
-                  <button onclick="toggleRole(${m.row}, '')" 
-                    style="cursor:pointer; border:2px solid black; padding:4px 8px; font-weight:900;
-                    background: ${isStudent ? '#eee' : 'white'}; 
-                    color: ${isStudent ? '#888' : 'black'};
-                    box-shadow: ${isStudent ? 'inset 2px 2px 0px rgba(0,0,0,0.1)' : '2px 2px 0px black'};">
-                    員
-                  </button>
-                </div>
-              </div>`;
-          }).join('')}
-        </div>
-      </div>`;
-  }).join('');
+          const isChief = currentRole === '正隊輔';
+          const isAssistant = currentRole === '副隊輔';
+          const isStudent = !currentRole || currentRole === '';
+
+          return `
+            <div class="member-row" style="padding:10px 0; border-bottom:2px solid #eee;">
+              <span style="font-weight:900; font-size:15px;">${m.name}</span>
+              <div style="display:flex; gap:8px;">
+                <button onclick="toggleRole(${m.row}, '正隊輔')" 
+                  style="cursor:pointer; border:2px solid black; padding:4px 8px; font-weight:900;
+                  background: ${isChief ? '#ffcc00' : 'white'}; 
+                  box-shadow: ${isChief ? 'inset 2px 2px 0px rgba(0,0,0,0.2)' : '2px 2px 0px black'};">
+                  正
+                </button>
+                
+                <button onclick="toggleRole(${m.row}, '副隊輔')" 
+                  style="cursor:pointer; border:2px solid black; padding:4px 8px; font-weight:900;
+                  background: ${isAssistant ? '#00d4ff' : 'white'}; 
+                  box-shadow: ${isAssistant ? 'inset 2px 2px 0px rgba(0,0,0,0.2)' : '2px 2px 0px black'};">
+                  副
+                </button>
+                
+                <button onclick="toggleRole(${m.row}, '')" 
+                  style="cursor:pointer; border:2px solid black; padding:4px 8px; font-weight:900;
+                  background: ${isStudent ? '#eee' : 'white'}; 
+                  color: ${isStudent ? '#888' : 'black'};
+                  box-shadow: ${isStudent ? 'inset 2px 2px 0px rgba(0,0,0,0.1)' : '2px 2px 0px black'};">
+                  員
+                </button>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}).join('');
 }
 
 function toggleRole(row, targetRole) {
@@ -957,7 +962,7 @@ function toggleRole(row, targetRole) {
   changedRows.set(row, { 
     row: row, 
     group: m.group, 
-    teamRole: targetRole 
+    teamRole: m.teamRole 
   });
   isDirty = true;
 
