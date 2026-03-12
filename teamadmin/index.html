@@ -929,12 +929,12 @@ function renderRoleInterface() {
           ${gMembers.map(m => {
           // 💡 關鍵修正：先看暫存區有沒有這個人的職稱改動
           const pending = changedRows.get(m.row);
-          const currentRole = (pending && pending.teamRole !== undefined) ? pending.teamRole : m.role; 
+          const currentRole = (pending && pending.teamRole !== undefined) ? pending.teamRole : m.teamRole; 
           // 註：請確認你的 fullData 原始職稱欄位是 .role 還是 .teamRole，下面暫統一用 currentRole
 
           const isChief = currentRole === '正隊輔';
           const isAssistant = currentRole === '副隊輔';
-          const isStudent = !currentRole || currentRole === '';
+          const isStudent = !currentRole || currentRole === '' || (currentRole !== '正隊輔' && currentRole !== '副隊輔');
 
           return `
             <div class="member-row" style="padding:10px 0; border-bottom:2px solid #eee;">
