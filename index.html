@@ -2,7 +2,8 @@
 <html>
 <head>
   <base target="_top">
-  <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8" content="WE R ONE 2026報名系統">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" content="WE R ONE 2026報名系統">
   <title>WE R ONE 2026 營會報名系統</title>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <style>
@@ -45,7 +46,6 @@
     #memberTable th:nth-child(1) { width: 120px; } /* 姓名 */
     #memberTable th:nth-child(2) { width: 100px; }  /* 性別 */
     #memberTable th:nth-child(3) { width: 160px; } /* 生日 */
-    /* #memberTable th:nth-child(4) { width: 140px; } /* 身分證 */
     #memberTable th:nth-child(4) { width: 140px; } /* 手機 */
     #memberTable th:nth-child(5) { width: 250px; } /* Email */
     #memberTable th:nth-child(6) { width: 120px; } /* 報名身分 */
@@ -77,7 +77,6 @@
     .preview-table th:nth-last-child(12) { width: 100px; }  /* 報名身分 */
     .preview-table th:nth-last-child(13) { width: 250px; } /* 電子郵件 */
     .preview-table th:nth-last-child(14) { width: 100px; }/* 手機 */
-    /*.preview-table th:nth-last-child(15) { width: 100px; } 身分證 */
     .preview-table th:nth-last-child(15) { width: 100px; }  /* 生日 */ 
     .preview-table th:nth-last-child(16) { width: 70px; } /* 性別 */
     .preview-table th:nth-last-child(17) { width: 100px; } /* 姓名 */
@@ -217,7 +216,6 @@ code {
       <div class="form-group"><label>姓名</label><input type="text" name="name" class="single-in v-req"></div>
       <div class="form-group"><label>性別</label><select name="gender" class="single-in v-req"><option value="">請選擇</option><option>男</option><option>女</option></select></div>
       <div class="form-group"><label>生日</label><input type="date" name="birthday" class="single-in v-req"></div>
-      <!-- <div class="form-group"><label>身分證字號</label><input type="text" name="idCard" class="single-in v-req"></div> -->
       <div class="form-group"><label>手機</label><input type="tel" name="phone" class="single-in v-req tel-auto" placeholder="09XX-XXXXXX"></div>
       <div class="form-group"><label>電子郵件</label><input type="email" name="email" class="single-in v-req"></div>
     </div>
@@ -325,10 +323,11 @@ code {
     <h2 style="font-weight: 900; margin-bottom: 15px;">報名資料已送出！</h2>
     <p style="font-weight: 600; line-height: 1.6; color: #555; margin-bottom: 30px;">
       感謝您的參與！我們已收到您的報名申請。<br>
-      後續請留意 E-mail 報名確認信件。
+      後續請留意 E-mail 報名確認信件，<br>
+      若未收到信件請聯繫大會。
     </p>
     <a href="https://www.shinetaiwan.com" target="_top" class="btn btn-next" style="text-decoration: none; width: 100%; box-sizing: border-box;">
-      回到 SHINE 官網
+      回到營會官網
     </a>
   </div>
 </div>
@@ -378,34 +377,30 @@ code {
 
 <script>
   let memberData = [];
-  const PRICE = 3500, DISCOUNT = 400;
 
-  document.addEventListener('input', e => {
-  if (!window.isTelListenerAttached) {
-  document.addEventListener('input', e => {
-    const target = e.target;
-    if (target.classList.contains('tel-auto')) {
-      
-      // 1. 取得純數字，並限制在 10 碼
-      let v = target.value.replace(/\D/g, '').slice(0, 10);
-      
-      // 2. 格式化：只要超過 4 碼就插一個橫槓
-      let formatted = v;
-      if (v.length > 4) {
-        formatted = v.slice(0, 4) + '-' + v.slice(4);
-      }
-      
-      // 3. 關鍵修正：判斷如果值沒變，就不觸發更新
-      // 同時防止多個監聽器互相干擾
-      if (target.value !== formatted) {
-        target.value = formatted;
-      }
+  // 全域唯一的輸入監聽器：只在頁面載入時註冊這一次
+document.addEventListener('input', e => {
+  const target = e.target;
+
+  // 1. 處理手機格式化 (tel-auto)
+  if (target.classList.contains('tel-auto')) {
+    // 取得純數字，並限制在 10 碼
+    let v = target.value.replace(/\D/g, '').slice(0, 10);
+    
+    // 格式化邏輯：只要超過 4 碼就插一個橫槓 (09xx-xxxxxx)
+    let formatted = v;
+    if (v.length > 4) {
+      formatted = v.slice(0, 4) + '-' + v.slice(4);
     }
-    target.classList.remove('invalid');
-  });
-  window.isTelListenerAttached = true; // 標記已掛載
-}
-  e.target.classList.remove('invalid');
+    
+    // 只有當「目前畫面上的值」與「格式化後的值」不同時才更新，避免游標亂跳
+    if (target.value !== formatted) {
+      target.value = formatted;
+    }
+  }
+
+  // 2. 統一移除無效標記 (不論是不是手機欄位，只要有輸入就移除紅框)
+  target.classList.remove('invalid');
 });
 
   // 開啟注意事項視窗
@@ -699,7 +694,7 @@ function handleP1Next() {
   btn.disabled = true; 
   btn.innerText = "資料送出中...";
 
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkCjNbDqRMzZGBPyT0JY92jnEt6Vr0oD78PxIBwpTMVC5KDEgv5ClAyqpbnPZm7EhB/exec"; // 記得替換！
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxFwayrAbTaECk-bpojP627n1YDZ5tIJ_5TVFHP5yjQewLexAUZfWnBJPjCld6RRfZW/exec"; // 記得替換！
 
   const payload = {
     mode: document.getElementById('modeSelect').value,
@@ -712,34 +707,41 @@ function handleP1Next() {
   };
 
   try {
-    // 執行送出
-    await fetch(SCRIPT_URL, {
+    // 1. 開始發送請求
+    const response = await fetch(SCRIPT_URL, {
       method: 'POST',
-      mode: 'no-cors', 
+      mode: 'cors', 
       cache: 'no-cache',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+      redirect: 'follow', 
       body: JSON.stringify(payload)
     });
 
-    // --- 成功後的處理邏輯 ---
-    
-    // 1. 隱藏送出按鈕
-    btn.classList.add('hidden');
-    
-    // 2. 顯示成功視窗
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex'; 
-    
-    // 3. (選填) 如果你有設置「關閉視窗」按鈕，確保它的功能正常
-    // 例如：document.getElementById('closeModalBtn').onclick = () => { location.reload(); };
+    // 2. 檢查網路狀態
+    if (!response.ok) throw new Error('網路回應不正確');
 
-    console.log("資料已成功送出至後端");
+    // 3. 等待解析 JSON 結果
+    const result = await response.json();
+    console.log('報名結果：', result);
+
+    // 4. 根據後端回傳內容決定下一步
+    if (result.status === 'success') {
+      // 只有成功了，才隱藏按鈕、顯示成功視窗
+      document.getElementById('finalSubmitBtn').classList.add('hidden');
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+    } else {
+      // 如果後端回傳失敗（例如名額已滿）
+      throw new Error(result.message || '報名失敗');
+    }
 
   } catch (error) {
-    console.error("Submission Error:", error);
-    alert("抱歉，送出過程發生錯誤，請截圖並聯繫主辦單位。");
+    // 統一在這裡捕捉所有錯誤（網路錯誤或後端錯誤）
+    console.error('發生錯誤：', error);
+    alert('抱歉，報名發生問題：' + error.message);
     btn.disabled = false;
-    btn.innerText = "確認無誤，送出報名";
+    btn.innerText = '確認無誤，送出報名';
+    
   }
 }
 
@@ -820,27 +822,59 @@ function handleP1Next() {
   
   function addGroupRow(data={}) {
   const tr = document.createElement('tr'); tr.className = 'member-row';
+  // 1. 先建立結構，但把 value 留空（或是放預設值）
   tr.innerHTML = `
-    <td class="sticky-col"><input type="text" name="name" value="${data.姓名||''}"></td>
-    <td><select name="gender"><option value="">請選擇</option><option ${data.性別==='男'?'selected':''}>男</option><option ${data.性別==='女'?'selected':''}>女</option></select></td>
-    <td><input type="date" name="birthday" value="${formatDate(data.生日)}"></td>
-    
-    <td><input type="tel" name="phone" class="tel-auto" value="${data.手機||''}"></td>
-    <td><input type="email" name="email" value="${data.電子郵件||''}"></td>
-    <td><select name="role"><option value="">請選擇</option><option ${data.報名身分==='國中'?'selected':''}>國中</option><option ${data.報名身分==='高中職'?'selected':''}>高中職</option><option ${data.報名身分==='大專'?'selected':''}>大專</option><option ${data.報名身分==='社青'?'selected':''}>社青</option><option ${data.報名身分==='傳道'?'selected':''}>傳道</option><option ${data.報名身分==='牧師'?'selected':''}>牧師</option></select></td>
-    <td><input type="text" name="school" value="${data.就讀學校||''}"></td>
-    <td><input type="text" name="grade" value="${data.升上年級||''}"></td>
-    <td><input type="text" name="church" value="${data.所屬教會||''}"></td>
-    <td><select name="isChristian"><option value="">請選擇</option><option ${data.是否為基督徒==='是'?'selected':''}>是</option><option ${data.是否為基督徒==='否'?'selected':''}>否</option></select></td>
-    <td><select name="isBaptized"><option value="">請選擇</option><option ${data.是否已受洗==='是'?'selected':''}>是</option><option ${data.是否已受洗==='否'?'selected':''}>否</option></select></td>
-    <td><input type="text" name="iceName" value="${data.緊急聯絡人||''}"></td>
-    <td><input type="text" name="iceRel" value="${data.緊急連絡人關係||''}"></td>
-    <td><input type="tel" name="icePhone" class="tel-auto" value="${data.緊急聯絡人電話||''}"></td>
-    <td><select name="isAttended"><option value="">請選擇</option><option ${data.曾參加SHINE營會==='是'?'selected':''}>是</option><option ${data.曾參加SHINE營會==='否'?'selected':''}>否</option></select></td>
-    <td><select name="dietary"><option value="">請選擇</option><option ${data.飲食需求==='葷食'?'selected':''}>葷食</option><option ${data.飲食需求==='蛋奶素'?'selected':''}>蛋奶素</option><option ${data.飲食需求==='純素'?'selected':''}>純素</option></select></td>
-    <td><input type="text" name="medical" value="${data.特殊狀況與注意事項||'無'}"></td>
+    <td class="sticky-col"><input type="text" name="name"></td>
+    <td><select name="gender"><option value="">請選擇</option><option value="男">男</option><option value="女">女</option></select></td>
+    <td><input type="date" name="birthday"></td>
+    <td><input type="tel" name="phone" class="tel-auto"></td>
+    <td><input type="email" name="email"></td>
+    <td>
+      <select name="role">
+        <option value="">請選擇</option>
+        <option value="國中">國中</option><option value="高中職">高中職</option>
+        <option value="大專">大專</option><option value="社青">社青</option>
+        <option value="傳道">傳道</option><option value="牧師">牧師</option>
+      </select>
+    </td>
+    <td><input type="text" name="school"></td>
+    <td><input type="text" name="grade"></td>
+    <td><input type="text" name="church"></td>
+    <td><select name="isChristian"><option value="">請選擇</option><option value="是">是</option><option value="否">否</option></select></td>
+    <td><select name="isBaptized"><option value="">請選擇</option><option value="是">是</option><option value="否">否</option></select></td>
+    <td><input type="text" name="iceName"></td>
+    <td><input type="text" name="iceRel"></td>
+    <td><input type="tel" name="icePhone" class="tel-auto"></td>
+    <td><select name="isAttended"><option value="">請選擇</option><option value="是">是</option><option value="否">否</option></select></td>
+    <td><select name="dietary"><option value="">請選擇</option><option value="葷食">葷食</option><option value="蛋奶素">蛋奶素</option><option value="純素">純素</option></select></td>
+    <td><input type="text" name="medical"></td>
     <td><button type="button" onclick="this.closest('tr').remove()" style="color:red; border:none; background:none; cursor:pointer; font-weight:900;">✕</button></td>
   `;
+
+  // 2. 使用安全賦值 (這部分會自動過濾掉惡意代碼)
+  const setVal = (selector, value) => {
+    const el = tr.querySelector(selector);
+    if (el) el.value = value || '';
+  };
+
+  setVal('input[name="name"]', data.姓名);
+  setVal('select[name="gender"]', data.性別);
+  setVal('input[name="birthday"]', formatDate(data.生日));
+  setVal('input[name="phone"]', data.手機);
+  setVal('input[name="email"]', data.電子郵件);
+  setVal('select[name="role"]', data.報名身分);
+  setVal('input[name="school"]', data.就讀學校);
+  setVal('input[name="grade"]', data.升上年級);
+  setVal('input[name="church"]', data.所屬教會);
+  setVal('select[name="isChristian"]', data.是否為基督徒);
+  setVal('select[name="isBaptized"]', data.是否已受洗);
+  setVal('input[name="iceName"]', data.緊急聯絡人);
+  setVal('input[name="iceRel"]', data.緊急連絡人關係);
+  setVal('input[name="icePhone"]', data.緊急聯絡人電話);
+  setVal('select[name="isAttended"]', data.曾參加SHINE營會);
+  setVal('select[name="dietary"]', data.飲食需求);
+  setVal('input[name="medical"]', data.特殊狀況與注意事項 || '無');
+
   document.getElementById('memberBody').appendChild(tr);
 }
   function formatDate(v) { if(!v) return ''; if(typeof v === 'number') return new Date((v-25569)*86400*1000).toISOString().split('T')[0]; return v; }
@@ -851,12 +885,8 @@ function handleP1Next() {
       document.getElementById('memberBody').innerHTML = ''; data.forEach(d => addGroupRow(d));
     }; r.readAsBinaryString(i.files[0]);
   }
-  window.onload = toggleMode;
+  window.addEventListener('load', toggleMode);
   
 </script>
 </body>
 </html>
-
-
-
-
