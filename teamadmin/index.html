@@ -72,6 +72,7 @@
       font-weight: 900; 
       background: var(--shine-lime); 
       padding: 2px 10px; 
+      display: inline-block;
     }
 
     /* =========================================
@@ -471,7 +472,7 @@
 
 <script>
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbzXzkHd-3fBRnbyAnRYCKKFxXuhPTGZ1cBUenMsvEZ1JcTcHUglKeY-KF93W_oWNyh0/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycby68Xausys-nLECWDYJu_hWCfcOWxjX7ouFu0RMUBkslsQKMVVZPUNVax_nsWi_zAEP/exec';
 
 async function callApi(action, payload) {
   const response = await fetch(API_URL, {
@@ -1003,6 +1004,7 @@ function removeFromRoom(row) {
   // document.getElementById('m-idCard').value = m.idCard || ""; // 已依隱私需求移除
   document.getElementById('m-phone').value = m.phone || "";
   document.getElementById('m-email').value = m.email || "";
+  document.getElementById('m-role').value = m.role || "";
   document.getElementById('m-school').value = m.school || "";
   document.getElementById('m-grade').value = m.grade || "";
   document.getElementById('m-church').value = m.church || "";
@@ -1603,7 +1605,8 @@ async function saveBatchData(btnElement) {
     // 1. 呼叫 API (後端這時會寫入資料)
     const res = await callApi("batchUpdateDormAndGroups", { 
       updates: updates, 
-      adminName: adminName 
+      adminName: sessionStorage.getItem('adminName'), // 從存儲抓
+      adminPhone: sessionStorage.getItem('adminPhone') // 從存儲抓
     });
 
     // 💡 關鍵：不要再去判斷 if(res.success)，因為 callApi 沒報錯就代表成功
