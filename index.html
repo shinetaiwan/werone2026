@@ -663,12 +663,30 @@ function handleP1Next() {
   const early = n - free; // 這裡的 early 代表符合折扣資格的人數
   const total = (n * PRICE) - (free * PRICE) - (early * currentDiscount);
   
-  // 解決小數落差邏輯 (分攤到各個 member 物件中)
-  let avg = Math.floor(total / n);
-  let diff = total - (avg * n);
-  memberData.forEach((m, idx) => {
-    m.fee = (idx === n - 1) ? (avg + diff) : avg;
-  });
+    // --- 2. 重新分配費用邏輯 (核心更動) ---
+  const paidCount = n - free; // 實際需要付費的人數
+
+  if (paidCount > 0) {
+    let avg = Math.floor(total / paidCount);
+    let diff = total - (avg * paidCount);
+    let paidIdx = 0; // 用來追蹤目前是第幾個「付費者」
+
+    memberData.forEach((m, idx) => {
+      if (idx < free) {
+        // A. 優先順序：前 free 名成員為 0 元
+        m.fee = 0;
+      } else {
+        // B. 剩下的成員平攤總額
+        // 判斷是否為「最後一個付費者」來吸收餘數 diff
+        m.fee = (paidIdx === paidCount - 1) ? (avg + diff) : avg;
+        paidIdx++;
+      }
+    });
+  } else {
+    // 極端防呆：如果全部都免費
+    memberData.forEach(m => m.fee = 0);
+  }
+
 
   // 動態生成早鳥折扣的顯示文字
   const discountText = currentDiscount > 0 
