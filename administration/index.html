@@ -392,11 +392,13 @@
       grid-template-columns: 1fr auto;
       gap: 15px;
       align-items: end;
+      margin-bottom: 20px;
     }
 
     /* Finance search has 3 cols: input | select | count */
     .search-group.finance-search-layout {
-      grid-template-columns: 1fr auto auto;
+      grid-template-columns: 1fr auto auto auto;
+      margin-bottom: 20px;
     }
 
     .search-group input, .search-group select {
@@ -594,6 +596,15 @@
           <label for="window-filter-select" style="margin:0 0 5px;">篩選窗口</label>
           <select id="window-filter-select" onchange="handleFinanceSearch()">
             <option value="all">📁 所有窗口</option>
+          </select>
+        </div>
+        <div>
+          <label for="status-filter-select" style="margin:0 0 5px;">報名狀態</label>
+          <select id="status-filter-select" onchange="handleFinanceSearch()">
+            <option value="all">📌 所有狀態</option>
+            <option value="已繳費">✅ 已繳費 (已繳清)</option>
+            <option value="待繳費">⏳ 待繳費 (尚有餘額)</option>
+            <option value="取消報名">❌ 取消報名</option>
           </select>
         </div>
         <span id="finance-stats-count" class="count-badge">0 筆</span>
@@ -889,30 +900,51 @@
     // 搜尋處理 — 財務模式
     // =========================================
     function handleFinanceSearch() {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => {
-        const key            = (document.getElementById('finance-search')?.value || '').toLowerCase().trim();
-        const selectedWindow = document.getElementById('window-filter-select')?.value || 'all';
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    const key            = (document.getElementById('finance-search')?.value || '').toLowerCase().trim();
+    const selectedWindow = document.getElementById('window-filter-select')?.value || 'all';
+    // 獲取 UI 上的狀態篩選值
+    const selectedStatus = document.getElementById('status-filter-select')?.value || 'all';
 
-        currentFilteredData = fullData.filter(m => {
-          const matchKey = !key ||
-            (m.name        && m.name.toLowerCase().includes(key))   ||
-            (m.phone       && m.phone.includes(key))                 ||
-            (m.church      && m.church.toLowerCase().includes(key))  ||
-            (m.contactName && m.contactName.toLowerCase().includes(key));
+    currentFilteredData = fullData.filter(m => {
+      // 1. 關鍵字篩選 (保持原樣)
+      const matchKey = !key ||
+        (m.name          && m.name.toLowerCase().includes(key))   ||
+        (m.phone         && m.phone.includes(key))                  ||
+        (m.church        && m.church.toLowerCase().includes(key))   ||
+        (m.contactName   && m.contactName.toLowerCase().includes(key));
 
-          const mWindow   = (m.contactName || "").trim() || "個人報名";
-          const matchWin  = (selectedWindow === 'all') || (mWindow === selectedWindow);
+      // 2. 窗口篩選 (保持原樣)
+      const mWindow  = (m.contactName || "").trim() || "個人報名";
+      const matchWin = (selectedWindow === 'all') || (mWindow === selectedWindow);
 
-          return matchKey && matchWin;
-        });
+      // 3. 狀態篩選 (同步卡片渲染邏輯)
+      const balance    = Number(m.totalDue || 0) - Number(m.paid || 0) - Number(m.subsidy || 0);
+      const isCancelled = (m.status === '取消報名');
+      const isComplete  = (balance <= 0);
 
-        const statsEl = document.getElementById('finance-stats-count');
-        if (statsEl) statsEl.innerText = `顯示 ${currentFilteredData.length} 筆`;
+      // 判斷該資料屬於哪一個分類
+      let currentStatusCategory = "";
+      if (isCancelled) {
+        currentStatusCategory = "取消報名";
+      } else if (isComplete) {
+        currentStatusCategory = "已繳費";
+      } else {
+        currentStatusCategory = "待繳費";
+      }
 
-        renderFinanceModule(currentFilteredData);
-      }, 250);
-    }
+      const matchStat = (selectedStatus === 'all') || (currentStatusCategory === selectedStatus);
+
+      return matchKey && matchWin && matchStat;
+    });
+
+    const statsEl = document.getElementById('finance-stats-count');
+    if (statsEl) statsEl.innerText = `顯示 ${currentFilteredData.length} 筆`;
+
+    renderFinanceModule(currentFilteredData);
+  }, 250);
+}
 
     // FIX #11: always called unconditionally in fetchData()
     function updateWindowFilterOptions() {
@@ -1084,7 +1116,7 @@
             </td>
             <td><strong>${m.name}</strong></td>
             <td>${m.church || ''}</td>
-            <td><span class="badge ${isComplete ? 'bg-green' : 'bg-red'}">${isComplete ? '完成' : '待繳'}</span></td>
+            <td><span class="badge ${isCancelled ? 'bg-gray' : (isComplete ? 'bg-green' : 'bg-red')}">${isCancelled ? '取消' : (isComplete ? '完成' : '待繳')}</span></td>
             <td style="text-align:right;">${m.totalDue || 0}</td>
             <td style="text-align:right;">${m.subsidy || 0}</td>
             <td style="text-align:right; color:var(--shine-blue);">${m.paid || 0}</td>
