@@ -1081,6 +1081,7 @@
         const currentWindow = (m.contactName || "").trim();
         const balance       = Number(m.totalDue || 0) - Number(m.paid || 0) - Number(m.subsidy || 0);
         const isComplete    = (balance <= 0);
+        const isCancelled = (m.status === '取消報名');
 
         // Group subtotal on window change
         if (lastWindow !== null && currentWindow !== lastWindow && lastWindow !== "") {
