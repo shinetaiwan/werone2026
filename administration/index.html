@@ -601,7 +601,7 @@
           <select id="status-filter-select" onchange="handleFinanceSearch()">
             <option value="all">📌 所有狀態</option>
             <option value="已繳費">✅ 已繳費 (已繳清)</option>
-            <option value="待繳費">⏳ 待繳費 (尚有餘額)</option>
+            <option value="待繳費" selected>⏳ 待繳費 (尚有餘額)</option>
             <option value="取消報名">❌ 取消報名</option>
           </select>
         </div>
@@ -801,6 +801,7 @@
         // FIX #11: always build window options regardless of current tab
         updateWindowFilterOptions();
         refreshCurrentView();
+        handleFinanceSearch();
       }
     }
 
