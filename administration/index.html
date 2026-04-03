@@ -770,23 +770,45 @@
     // =========================================
     // 登入
     // =========================================
-    async function doLogin() {
-      const u = document.getElementById('u_name').value;
-      const p = document.getElementById('u_pass').value;
-      if (!u || !p) { alert("請填寫帳號與密碼"); return; }
-      const res = await api({ action: 'login', username: u, password: p });
-      if (res && res.success) {
-        sessionStorage.setItem('admin_token', res.token);
-        sessionStorage.setItem('admin_name', res.userName);
-        document.getElementById('auth-block').classList.add('hidden');
-        document.getElementById('admin-dashboard').classList.remove('hidden');
-        document.getElementById('dashboard-title').innerText = `管理人員：${res.userName}`;
-        fetchData();
-        attachModalListener();
-      } else {
-        alert("❌ 驗證失敗，請確認帳號密碼");
-      }
-    }
+    // 1. 頁面載入時自動執行的初始化檢查
+window.addEventListener('load', async () => {
+  const savedToken = sessionStorage.getItem('admin_token');
+  const savedName = sessionStorage.getItem('admin_name');
+
+  if (savedToken && savedName) {
+    // 如果有 Token，直接跳過登入步驟進入儀表板
+    showDashboard(savedName);
+    fetchData();
+    attachModalListener();
+  }
+});
+
+// 2. 將原本 doLogin 裡面切換 UI 的邏輯抽出來共用
+function showDashboard(userName) {
+  document.getElementById('auth-block').classList.add('hidden');
+  document.getElementById('admin-dashboard').classList.remove('hidden');
+  document.getElementById('dashboard-title').innerText = `管理人員：${userName}`;
+}
+
+// 3. 修改後的 doLogin
+async function doLogin() {
+  const u = document.getElementById('u_name').value;
+  const p = document.getElementById('u_pass').value;
+  if (!u || !p) { alert("請填寫帳號與密碼"); return; }
+  
+  const res = await api({ action: 'login', username: u, password: p });
+  
+  if (res && res.success) {
+    sessionStorage.setItem('admin_token', res.token);
+    sessionStorage.setItem('admin_name', res.userName);
+    showDashboard(res.userName); // 使用共用函式
+    fetchData();
+    attachModalListener();
+  } else {
+    alert("❌ 驗證失敗，請確認帳號密碼");
+  }
+}
+
 
     // =========================================
     // 資料載入
