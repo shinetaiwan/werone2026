@@ -1046,7 +1046,7 @@
     // FIX #10: removed inline style from thead tr, letting .finance-table th handle lime color
     // =========================================
     function renderFinanceModule(data) {
-      const container = document.getElementById('section-list');
+  const container = document.getElementById('section-list');
       if (!container) return;
 
       container.classList.add('finance-mode');
@@ -1071,66 +1071,80 @@
           </table>
         </div>`;
 
-      const tbody = document.getElementById('finance-body');
-      let lastWindow = null, gDue = 0, gPaid = 0, gSub = 0, groupIndex = 0;
-      let rowsHtml = "";
+  const tbody = document.getElementById('finance-body');
+  let lastWindow = null, gDue = 0, gPaid = 0, gSub = 0, groupIndex = 0;
+  let groupMemberCount = 0; // 新增：用來記錄當前群組的序號
+  let rowsHtml = "";
 
-      sorted.forEach((m, index) => {
-        const currentWindow = (m.contactName || "").trim();
-        const balance       = Number(m.totalDue || 0) - Number(m.paid || 0) - Number(m.subsidy || 0);
-        const isComplete    = (balance <= 0);
-        const isCancelled = (m.status === '取消報名');
+  sorted.forEach((m, index) => {
+    const currentWindow = (m.contactName || "").trim();
+    const balance       = Number(m.totalDue || 0) - Number(m.paid || 0) - Number(m.subsidy || 0);
+    const isComplete    = (balance <= 0);
+    const isCancelled = (m.status === '取消報名');
 
-        // Group subtotal on window change
-        if (lastWindow !== null && currentWindow !== lastWindow && lastWindow !== "") {
-          rowsHtml += renderGroupSummaryHtml(lastWindow, gDue, gPaid, gSub, groupIndex);
-          gDue = 0; gPaid = 0; gSub = 0; groupIndex++;
-        }
+    // 換窗口時：重置小計與序號
+    if (lastWindow !== null && currentWindow !== lastWindow && lastWindow !== "") {
+      rowsHtml += renderGroupSummaryHtml(lastWindow, gDue, gPaid, gSub, groupIndex);
+      gDue = 0; gPaid = 0; gSub = 0; 
+      groupIndex++;
+      groupMemberCount = 0; // 換新群組，序號重置
+    }
 
-        // Group header row
-        if (currentWindow !== lastWindow) {
-          const isIndiv = currentWindow === "";
-          rowsHtml += `
-            <tr class="group-header" ${isIndiv ? '' : `onclick="toggleGroup(${groupIndex}, this)"`}>
-              <td colspan="9">
-                ${isIndiv ? '📍' : '<span class="toggle-icon">▼</span>'}
-                <strong>${isIndiv ? "個人報名區域" : "窗口：" + currentWindow}</strong>
-                ${(!isIndiv && m.contactPhone) ? `<span class="header-phone">📱 ${m.contactPhone}</span>` : ''}
-              </td>
-            </tr>`;
-          lastWindow = currentWindow;
-        }
+    // 渲染群組標頭 (Group Header)
+    if (currentWindow !== lastWindow) {
+      const isIndiv = currentWindow === "";
+      rowsHtml += `
+        <tr class="group-header" ${isIndiv ? '' : `onclick="toggleGroup(${groupIndex}, this)"`}>
+          <td colspan="9">
+            ${isIndiv ? '📍' : '<span class="toggle-icon">▼</span>'}
+            <strong>${isIndiv ? "個人報名區域" : "窗口：" + currentWindow}</strong>
+            ${(!isIndiv && m.contactPhone) ? `<span class="header-phone">📱 ${m.contactPhone}</span>` : ''}
+          </td>
+        </tr>`;
+      lastWindow = currentWindow;
+      groupMemberCount = 0; // 確保 header 之後的第一筆從 1 開始（針對個人報名區）
+    }
 
-        if (currentWindow !== "") {
-          gDue  += Number(m.totalDue || 0);
-          gPaid += Number(m.paid || 0);
-          gSub  += Number(m.subsidy || 0);
-        }
+    // 累加序號
+    groupMemberCount++;
 
-        const rowClass = currentWindow === "" ? "" : `group-row-${groupIndex}`;
-        rowsHtml += `
-          <tr onclick="openAction(${m.row})" class="${rowClass}">
-            <td onclick="event.stopPropagation()">
-              <input type="checkbox" class="row-checkbox" value="${m.row}" onchange="updateBatchUI()">
-            </td>
-            <td><strong>${m.name}</strong></td>
-            <td>${m.church || ''}</td>
-            <td><span class="badge ${isCancelled ? 'bg-gray' : (isComplete ? 'bg-green' : 'bg-red')}">${isCancelled ? '取消' : (isComplete ? '完成' : '待繳')}</span></td>
-            <td style="text-align:right;">${m.totalDue || 0}</td>
-            <td style="text-align:right;">${m.subsidy || 0}</td>
-            <td style="text-align:right; color:var(--shine-blue);">${m.paid || 0}</td>
-            <td style="text-align:right;" class="${balance > 0 ? 'balance-red' : 'balance-green'}">${balance}</td>
-            <td class="note-cell">${m.payNote || ''}</td>
-          </tr>`;
+    if (currentWindow !== "") {
+      gDue  += Number(m.totalDue || 0);
+      gPaid += Number(m.paid || 0);
+      gSub  += Number(m.subsidy || 0);
+    }
 
-        // Last row subtotal
+    const rowClass = currentWindow === "" ? "" : `group-row-${groupIndex}`;
+    
+    // 修改處：在姓名欄位前面加上序號
+    rowsHtml += `
+      <tr onclick="openAction(${m.row})" class="${rowClass}">
+        <td onclick="event.stopPropagation()">
+          <input type="checkbox" class="row-checkbox" value="${m.row}" onchange="updateBatchUI()">
+        </td>
+        <td>
+          <span style="color: #888; font-size: 0.85em; margin-right: 5px;">${groupMemberCount}.</span>
+          <strong>${m.name}</strong>
+        </td>
+        <td>${m.church || ''}</td>
+        <td><span class="badge ${isCancelled ? 'bg-gray' : (isComplete ? 'bg-green' : 'bg-red')}">${isCancelled ? '取消' : (isComplete ? '完成' : '待繳')}</span></td>
+        <td style="text-align:right;">${m.totalDue || 0}</td>
+        <td style="text-align:right;">${m.subsidy || 0}</td>
+        <td style="text-align:right; color:var(--shine-blue);">${m.paid || 0}</td>
+        <td style="text-align:right;" class="${balance > 0 ? 'balance-red' : 'balance-green'}">${balance}</td>
+        <td class="note-cell">${m.payNote || ''}</td>
+      </tr>`;
+
+    // Last row subtotal
         if (index === sorted.length - 1 && currentWindow !== "") {
           rowsHtml += renderGroupSummaryHtml(currentWindow, gDue, gPaid, gSub, groupIndex);
         }
-      });
+  });
 
-      tbody.innerHTML = rowsHtml;
-    }
+  tbody.innerHTML = rowsHtml;
+}
+
+
 
     // FIX #3: changePage now routes correctly to the right renderer
     function changePage(delta) {
