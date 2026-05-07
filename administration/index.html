@@ -1845,7 +1845,6 @@ function printStats() {
   const tbody = document.getElementById('window-table-body');
   if (!tbody) return;
 
-  // 1. 確保資料源存在且為陣列
   const source = window.fullData || window.allData || (typeof fullData !== 'undefined' ? fullData : []);
 
   if (source.length === 0) {
@@ -1856,41 +1855,50 @@ function printStats() {
   const windowMap = {};
 
   source.forEach((row, idx) => {
-  if (idx === 0 || !row) return; // 跳過標題與空行
+    if (idx === 0 || !row || !Array.isArray(row)) return;
 
-  // 1. 取得 Y 欄內容，不做格式判斷，只做去空白
-  const clusterKey = row[24] ? String(row[24]).trim() : "";
+    // 取得 Y 欄內容作為聚合 Key (Index 24)
+    const clusterKey = row[24] ? String(row[24]).trim() : "";
 
-  // 2. 只要這格不是空的，就進行彙整
-  if (clusterKey !== "") {
-    if (!windowMap[clusterKey]) {
-      windowMap[clusterKey] = {
-        name: row[22] || "未填",  // W 欄
-        phone: row[23] || "未填", // X 欄
-        identifier: clusterKey,  // 這裡就是你的彙整依據
-        count: 0
-      };
+    // 只要這格不是空的，就進行彙整
+    if (clusterKey !== "") {
+      if (!windowMap[clusterKey]) {
+        windowMap[clusterKey] = {
+          name: row[22] ? String(row[22]).trim() : "未填",  // W 欄
+          phone: row[23] ? String(row[23]).trim() : "未填", // X 欄
+          email: clusterKey, // 將識別碼存為 email 方便後續渲染調用
+          count: 0
+        };
+      }
+      windowMap[clusterKey].count++;
     }
-    windowMap[clusterKey].count++;
-  }
-});
+  });
 
   const windows = Object.values(windowMap);
 
   if (windows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">已讀取 789 筆資料，但未發現團報窗口 Email (第 25 欄)。</td></tr>';
+    // 增加一個 Debug 顯示，讓我們知道第 25 欄到底讀到了什麼
+    const debugSample = source[1] && source[1][24] ? source[1][24] : "完全空白";
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">
+      已讀取 ${source.length} 筆，但未發現團報資訊。<br>
+      <small style="color:gray;">第一筆資料第 25 欄內容為：${debugSample}</small>
+    </td></tr>`;
     return;
   }
 
   // 渲染表格內容
   tbody.innerHTML = windows.map(win => `
-    <tr>
+    <tr style="border-bottom: 1px solid #eee;">
       <td style="font-weight:900; color:#2c3e50;">${win.name}</td>
       <td>${win.phone}</td>
       <td style="font-family:monospace; font-size:12px; color:#555;">${win.email}</td>
-      <td style="text-align:center;"><span class="badge" style="background:#e67e22; color:white; padding:2px 8px; border-radius:4px;">${win.count}</span></td>
+      <td style="text-align:center;">
+        <span class="badge" style="background:#e67e22; color:white; padding:2px 8px; border-radius:4px;">
+          ${win.count}
+        </span>
+      </td>
       <td>
-        <button class="btn" style="background:var(--shine-yellow); border:none; padding:4px 10px; cursor:pointer;" 
+        <button class="btn" style="background:#ffc107; border:none; padding:4px 10px; cursor:pointer; font-weight:bold;"  
           onclick="openWindowModal('${win.email}', '${win.name}', '${win.phone}')">
           修正窗口
         </button>
