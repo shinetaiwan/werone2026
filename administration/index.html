@@ -1849,26 +1849,28 @@ function printStats() {
   const tbody = document.getElementById('window-table-body');
   if (!tbody) return;
 
-  // 現在 source 是物件陣列，例如 [{name: '...', contactEmail: '...'}, ...]
-  const source = window.fullData || [];
+  // 確保取得 GAS 回傳的物件陣列
+  const source = window.fullData || window.allData || [];
 
   if (source.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">⏳ 資料載入中...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">⏳ 資料載入中，請稍候...</td></tr>';
     return;
   }
 
   const windowMap = {};
 
   source.forEach(item => {
-    // 使用剛才在 GAS 補上的 contactEmail
-    const clusterKey = item.contactEmail || "";
+    // 1. 直接讀取你剛才在 GAS 補上的 contactEmail 屬性
+    // 如果未來想改回讀取原始陣列，請改用 row[24]
+    const clusterKey = item.contactEmail ? String(item.contactEmail).trim() : "";
 
-    if (clusterKey !== "" && clusterKey.includes('@')) {
+    // 2. 【核心修正】不檢查 @ 格式，只要這格有填東西（長度 > 0）就彙整
+    if (clusterKey !== "" && clusterKey !== "undefined") {
       if (!windowMap[clusterKey]) {
         windowMap[clusterKey] = {
           name: item.contactName || "未填",
           phone: item.contactPhone || "未填",
-          email: clusterKey,
+          identifier: clusterKey, // 儲存這個彙整依據
           count: 0
         };
       }
@@ -1879,25 +1881,31 @@ function printStats() {
   const windows = Object.values(windowMap);
 
   if (windows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">目前無團報窗口資料。</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">目前無任何團報資料（所有資料的窗口欄位皆為空白）。</td></tr>';
     return;
   }
 
-  // 渲染 HTML (這裡維持原樣)
+  // 3. 渲染表格
   tbody.innerHTML = windows.map(win => `
-    <tr>
-      <td style="font-weight:900;">${win.name}</td>
-      <td>${win.phone}</td>
-      <td style="font-family:monospace;">${win.email}</td>
-      <td style="text-align:center;"><span class="badge">${win.count}</span></td>
-      <td>
-        <button class="btn" onclick="openWindowModal('${win.email}', '${win.name}', '${win.phone}')">
-          修正窗口
+    <tr style="border-bottom: 1px solid #f4f4f4;">
+      <td style="padding: 6px 8px; font-weight:900; color:#2c3e50;">${win.name}</td>
+      <td style="padding: 6px 8px; font-size: 0.9em;">${win.phone}</td>
+      <td style="padding: 6px 8px; font-family:monospace; font-size:12px; color:#666;">${win.identifier}</td>
+      <td style="padding: 6px 8px; text-align:center;">
+        <span style="font-weight:bold; color:#e67e22; font-size: 1.1em;">
+          ${win.count} <small style="font-weight:normal; color:#999;">人</small>
+        </span>
+      </td>
+      <td style="padding: 6px 8px; text-align:right;">
+        <button class="btn" style="background:var(--shine-yellow, #ffc107); border:none; padding:2px 10px; cursor:pointer; border-radius:3px; font-size:12px; font-weight:bold;"  
+          onclick="openWindowModal('${win.identifier}', '${win.name}', '${win.phone}')">
+          修正
         </button>
       </td>
     </tr>
   `).join('');
 }
+    
 /**
  * 開啟 Modal 並帶入舊資料
  */
