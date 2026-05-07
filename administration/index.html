@@ -897,51 +897,62 @@ async function doLogin() {
   currentTab = tab;
   currentPage = 1;
 
-  // 1. 更新按鈕 UI
+  // 更新按鈕 UI
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   const activeBtn = document.getElementById('tab-' + tab);
   if (activeBtn) activeBtn.classList.add('active');
 
-  // 2. 取得所有區塊 DOM
-  const searchSection   = document.getElementById('search-section');
-  const listSection     = document.getElementById('section-list');
-  const statsSection    = document.getElementById('section-stats');
-  const windowSection   = document.getElementById('section-window'); // 新增
-  const adminSearchGrp  = document.getElementById('admin-search-group');
-  const finSearchGrp    = document.getElementById('finance-search-group');
+  const isStats = (tab === 'stats');
+  const isWindow = (tab === 'window'); // 新增：判斷是否為窗口分頁
 
-  // 3. 先隱藏所有主要區塊
-  [listSection, statsSection, windowSection, searchSection].forEach(el => {
-    if (el) el.classList.add('hidden');
-  });
+  const searchSection  = document.getElementById('search-section');
+  const listSection    = document.getElementById('section-list');
+  const statsSection   = document.getElementById('section-stats');
+  const windowSection  = document.getElementById('section-window'); // 新增：窗口專用容器
 
-  // 4. 根據 Tab 分流處理
-  if (tab === 'stats') {
+  if (isStats) {
+    // Stats 模式：隱藏搜尋、清單、窗口，顯示統計
+    if (searchSection) searchSection.classList.add('hidden');
+    if (windowSection) windowSection.classList.add('hidden');
+    if (listSection) {
+      listSection.classList.add('hidden');
+      listSection.innerHTML = ""; 
+      listSection.classList.remove('finance-mode');
+    }
     if (statsSection) statsSection.classList.remove('hidden');
     refreshStats();
-  } 
-  else if (tab === 'window') {
-    if (windowSection) windowSection.classList.remove('hidden');
-    // 這裡直接執行渲染窗口清單
-    renderWindowList(); 
-  } 
-  else {
-    // 編輯模式 (edit) 或 財務模式 (finance)
-    if (searchSection) searchSection.classList.remove('hidden');
-    if (listSection) {
-      listSection.classList.remove('hidden');
-      // 根據模式切換搜尋群組
-      if (tab === 'finance') {
+  } else {
+    // List 模式 (包含 edit, finance, window)
+    if (statsSection) statsSection.classList.add('hidden');
+    
+    if (isWindow) {
+      // 如果是窗口模式：隱藏搜尋與一般清單，顯示窗口容器
+      if (searchSection) searchSection.classList.add('hidden');
+      if (listSection) listSection.classList.add('hidden');
+      if (windowSection) {
+        windowSection.classList.remove('hidden');
+        renderWindowList(); // 觸發渲染
+      }
+    } else {
+      // 如果是 edit 或 finance：顯示搜尋與一般清單，隱藏窗口容器
+      if (windowSection) windowSection.classList.add('hidden');
+      if (searchSection) searchSection.classList.remove('hidden');
+      if (listSection) listSection.classList.remove('hidden');
+
+      // 原本的 Search Group 切換邏輯
+      const isFinance = (tab === 'finance');
+      const adminSearchGrp = document.getElementById('admin-search-group');
+      const finSearchGrp   = document.getElementById('finance-search-group');
+      if (isFinance) {
         adminSearchGrp?.classList.add('hidden');
         finSearchGrp?.classList.remove('hidden');
       } else {
         finSearchGrp?.classList.add('hidden');
         adminSearchGrp?.classList.remove('hidden');
       }
+      refreshCurrentView();
     }
-    refreshCurrentView();
   }
-
   updateBatchUI();
 }
 
