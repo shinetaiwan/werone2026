@@ -1843,55 +1843,67 @@ function printStats() {
 
     function renderWindowList() {
   const tbody = document.getElementById('window-table-body');
-  if (!tbody) return;
+  const source = window.fullData || window.allData || [];
 
-  // 🚀 同步嘗試所有可能的變數來源
-  const source = window.fullData || window.allData || (typeof fullData !== 'undefined' ? fullData : []);
-  
-  console.log("【渲染測試】來源資料筆數:", source.length);
-
-  if (!source || source.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">等待資料載入中... (請確認 fetchData 是否執行成功)</td></tr>';
+  if (source.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">等待資料中...</td></tr>';
     return;
   }
 
   const windowMap = {};
   
+  // 診斷：看第一筆有效資料的第 25 欄到底是什麼
+  const sample = source.find((r, i) => i > 0 && r[24]);
+  console.log("【除錯】第 25 欄 (Index 24) 內容範例：", sample ? sample[24] : "全是空的");
+
   source.forEach((row, idx) => {
-    // 略過標題列
-    if (idx === 0 && String(row[0]).includes("時間")) return;
+    // 1. 跳過標題列
+    if (idx === 0) return;
+    if (!row || row.length < 25) return; 
 
-    // 索引：W=22, X=23, Y=24
-    const email = String(row[24] || "").trim();
-    if (!email || email === "undefined") return;
+    // 2. 嚴格鎖定 Y 欄 (Index 24)
+    const winEmail = String(row[24] || "").trim();
+    
+    // 3. 關鍵過濾：如果這格沒填，代表他是「個人報名」，不計入窗口清單
+    if (!winEmail || winEmail === "" || winEmail === "undefined") return;
+    if (!winEmail.includes('@')) return;
 
-    if (!windowMap[email]) {
-      windowMap[email] = {
-        name: String(row[22] || "未填"),
-        phone: String(row[23] || "未填"),
-        email: email,
+    // 4. 抓取對應的 W(22) 姓名與 X(23) 電話
+    const winName  = String(row[22] || "未填").trim();
+    const winPhone = String(row[23] || "未填").trim();
+
+    if (!windowMap[winEmail]) {
+      windowMap[winEmail] = {
+        name: winName,
+        phone: winPhone,
+        email: winEmail,
         count: 0
       };
     }
-    windowMap[email].count++;
+    windowMap[winEmail].count++;
   });
 
   const windows = Object.values(windowMap);
+
   if (windows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">已讀取資料，但未發現團報 Email (Y欄)</td></tr>';
+    // 顯示更詳細的錯誤，幫助判斷
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">
+      已讀取 ${source.length} 筆，但第 25 欄 (Y) 均為空白。<br>
+      <button class="btn" onclick="console.table(window.fullData[1])" style="font-size:11px;">在主控台檢查整列資料</button>
+    </td></tr>`;
     return;
   }
 
-  // 渲染 HTML
+  // 正常渲染表格
   tbody.innerHTML = windows.map(win => `
     <tr>
-      <td style="font-weight:bold;">${win.name}</td>
+      <td style="font-weight:900;">${win.name}</td>
       <td>${win.phone}</td>
-      <td style="font-size:12px;">${win.email}</td>
-      <td style="text-align:center;">${win.count}</td>
+      <td style="font-family:monospace;">${win.email}</td>
+      <td style="text-align:center;"><span class="badge" style="background:#333; color:white; padding:2px 8px; border-radius:4px;">${win.count}</span></td>
       <td>
-        <button class="btn" style="background:var(--shine-yellow);" 
-          onclick="openWindowModal('${win.email}', '${win.name}', '${win.phone}')">修正</button>
+        <button class="btn" style="background:var(--shine-yellow); font-weight:bold;" 
+          onclick="openWindowModal('${win.email}', '${win.name}', '${win.phone}')">修正窗口</button>
       </td>
     </tr>
   `).join('');
