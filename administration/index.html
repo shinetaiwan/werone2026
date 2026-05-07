@@ -1856,28 +1856,24 @@ function printStats() {
   const windowMap = {};
 
   source.forEach((row, idx) => {
-    // 【防護機制 A】跳過標題列
-    if (idx === 0) return;
-    
-    // 【防護機制 B】關鍵修正！確保 row 存在且長度足夠，避免 Uncaught TypeError
-    if (!row || !Array.isArray(row) || row.length < 25) return;
+  if (idx === 0 || !row) return; // 跳過標題與空行
 
-    // 鎖定 Y 欄 (Index 24)
-    const winEmail = String(row[24] || "").trim();
-    
-    // 【過濾條件】只處理有填寫 Email 且符合格式的團報窗口
-    if (winEmail && winEmail.includes('@')) {
-      if (!windowMap[winEmail]) {
-        windowMap[winEmail] = {
-          name: String(row[22] || "未填").trim(),  // W 欄
-          phone: String(row[23] || "未填").trim(), // X 欄
-          email: winEmail,
-          count: 0
-        };
-      }
-      windowMap[winEmail].count++;
+  // 1. 取得 Y 欄內容，不做格式判斷，只做去空白
+  const clusterKey = row[24] ? String(row[24]).trim() : "";
+
+  // 2. 只要這格不是空的，就進行彙整
+  if (clusterKey !== "") {
+    if (!windowMap[clusterKey]) {
+      windowMap[clusterKey] = {
+        name: row[22] || "未填",  // W 欄
+        phone: row[23] || "未填", // X 欄
+        identifier: clusterKey,  // 這裡就是你的彙整依據
+        count: 0
+      };
     }
-  });
+    windowMap[clusterKey].count++;
+  }
+});
 
   const windows = Object.values(windowMap);
 
