@@ -1850,8 +1850,9 @@ function renderWindowList() {
   // 使用 fullData 作為資料來源
   const data = fullData || []; 
 
-  if (data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">資料讀取中或無資料...</td></tr>';
+  if (!data || data.length === 0) {
+    console.error("渲染失敗：找不到資料源，請檢查全域變數設定");
+    tbody.innerHTML = '<tr><td colspan="5">讀取中...</td></tr>';
     return;
   }
 
