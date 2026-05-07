@@ -1841,72 +1841,60 @@ function printStats() {
       if (isModalDirty) { e.preventDefault(); e.returnValue = ''; }
     });
 
-    /**
- * 渲染窗口清單 - 增加 GitHub 端與資料索引處理
- */
-function renderWindowList() {
+    function renderWindowList() {
   const tbody = document.getElementById('window-table-body');
-  
-  // 使用 fullData 作為資料來源
-  const data = fullData || []; 
+  if (!tbody) return;
 
-  if (!data || data.length === 0) {
-    console.error("渲染失敗：找不到資料源，請檢查全域變數設定");
-    tbody.innerHTML = '<tr><td colspan="5">讀取中...</td></tr>';
+  // 🚀 同步嘗試所有可能的變數來源
+  const source = window.fullData || window.allData || (typeof fullData !== 'undefined' ? fullData : []);
+  
+  console.log("【渲染測試】來源資料筆數:", source.length);
+
+  if (!source || source.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">等待資料載入中... (請確認 fetchData 是否執行成功)</td></tr>';
     return;
   }
 
   const windowMap = {};
-  data.forEach(item => {
-    // 依據你的資料結構（陣列或物件）抓取 W, X, Y 欄位
-    const winEmail = (item[24] || item.contactEmail || "").trim();
-    if (!winEmail) return;
+  
+  source.forEach((row, idx) => {
+    // 略過標題列
+    if (idx === 0 && String(row[0]).includes("時間")) return;
 
-    if (!windowMap[winEmail]) {
-      windowMap[winEmail] = {
-        name: item[22] || item.contactName || "未填",
-        phone: item[23] || item.contactPhone || "未填",
-        email: winEmail,
+    // 索引：W=22, X=23, Y=24
+    const email = String(row[24] || "").trim();
+    if (!email || email === "undefined") return;
+
+    if (!windowMap[email]) {
+      windowMap[email] = {
+        name: String(row[22] || "未填"),
+        phone: String(row[23] || "未填"),
+        email: email,
         count: 0
       };
     }
-    windowMap[winEmail].count++;
+    windowMap[email].count++;
   });
 
-
   const windows = Object.values(windowMap);
-
   if (windows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">未偵測到任何團報窗口資料</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">已讀取資料，但未發現團報 Email (Y欄)</td></tr>';
     return;
   }
 
-  let html = '';
-  windows.forEach(win => {
-    // 處理特殊字元轉義
-    const safeEmail = win.email.replace(/'/g, "\\'");
-    const safeName = win.name.replace(/'/g, "\\'");
-    const safePhone = win.phone.replace(/'/g, "\\'");
-
-    html += `
-      <tr style="border-bottom: 1px solid var(--shine-black);">
-        <td style="font-weight:900; color:var(--shine-black);">${win.name}</td>
-        <td>${win.phone}</td>
-        <td style="font-size:12px; font-family: monospace;">${win.email}</td>
-        <td style="text-align:center;">
-          <span class="badge" style="background:var(--shine-black); color:white; padding: 2px 8px; border-radius:4px;">${win.count} 人</span>
-        </td>
-        <td>
-          <button class="btn" style="padding:4px 12px; background:var(--shine-yellow); font-weight:900; cursor:pointer;" 
-            onclick="openWindowModal('${safeEmail}', '${safeName}', '${safePhone}')">
-            修正窗口
-          </button>
-        </td>
-      </tr>
-    `;
-  });
-
-  tbody.innerHTML = html;
+  // 渲染 HTML
+  tbody.innerHTML = windows.map(win => `
+    <tr>
+      <td style="font-weight:bold;">${win.name}</td>
+      <td>${win.phone}</td>
+      <td style="font-size:12px;">${win.email}</td>
+      <td style="text-align:center;">${win.count}</td>
+      <td>
+        <button class="btn" style="background:var(--shine-yellow);" 
+          onclick="openWindowModal('${win.email}', '${win.name}', '${win.phone}')">修正</button>
+      </td>
+    </tr>
+  `).join('');
 }
 
 /**
