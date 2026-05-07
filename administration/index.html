@@ -894,54 +894,56 @@ async function doLogin() {
     // FIX #5: use classList only, no inline style fighting
     // =========================================
     function switchMainTab(tab) {
-      currentTab = tab;
-      currentPage = 1; // reset pagination on tab switch
+  currentTab = tab;
+  currentPage = 1;
 
-      // Update button UI
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      const activeBtn = document.getElementById('tab-' + tab);
-      if (activeBtn) activeBtn.classList.add('active');
+  // 1. 更新按鈕 UI
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const activeBtn = document.getElementById('tab-' + tab);
+  if (activeBtn) activeBtn.classList.add('active');
 
-      const isStats = (tab === 'stats');
-      const isFinance = (tab === 'finance');
+  // 2. 取得所有區塊 DOM
+  const searchSection   = document.getElementById('search-section');
+  const listSection     = document.getElementById('section-list');
+  const statsSection    = document.getElementById('section-stats');
+  const windowSection   = document.getElementById('section-window'); // 新增
+  const adminSearchGrp  = document.getElementById('admin-search-group');
+  const finSearchGrp    = document.getElementById('finance-search-group');
 
-      const searchSection  = document.getElementById('search-section');
-      const listSection    = document.getElementById('section-list');
-      const statsSection   = document.getElementById('section-stats');
-      const adminSearchGrp = document.getElementById('admin-search-group');
-      const finSearchGrp   = document.getElementById('finance-search-group');
+  // 3. 先隱藏所有主要區塊
+  [listSection, statsSection, windowSection, searchSection].forEach(el => {
+    if (el) el.classList.add('hidden');
+  });
 
-      if (isStats) {
-        // Stats mode: hide search + list, show stats
-        if (searchSection) searchSection.classList.add('hidden');
-        if (listSection) {
-          listSection.classList.add('hidden');
-          listSection.innerHTML = ""; // clear stale finance table / cards
-          listSection.classList.remove('finance-mode'); // reset layout mode
-        }
-        if (statsSection)  statsSection.classList.remove('hidden');
-        refreshStats();
+  // 4. 根據 Tab 分流處理
+  if (tab === 'stats') {
+    if (statsSection) statsSection.classList.remove('hidden');
+    refreshStats();
+  } 
+  else if (tab === 'window') {
+    if (windowSection) windowSection.classList.remove('hidden');
+    // 這裡直接執行渲染窗口清單
+    renderWindowList(); 
+  } 
+  else {
+    // 編輯模式 (edit) 或 財務模式 (finance)
+    if (searchSection) searchSection.classList.remove('hidden');
+    if (listSection) {
+      listSection.classList.remove('hidden');
+      // 根據模式切換搜尋群組
+      if (tab === 'finance') {
+        adminSearchGrp?.classList.add('hidden');
+        finSearchGrp?.classList.remove('hidden');
       } else {
-        // List mode (edit or finance)
-        if (statsSection)  statsSection.classList.add('hidden');
-        if (searchSection) searchSection.classList.remove('hidden');
-        if (listSection)   listSection.classList.remove('hidden');
-
-        // Toggle the right search group
-        if (isFinance) {
-          if (adminSearchGrp) adminSearchGrp.classList.add('hidden');
-          if (finSearchGrp)   finSearchGrp.classList.remove('hidden');
-        } else {
-          if (finSearchGrp)   finSearchGrp.classList.add('hidden');
-          if (adminSearchGrp) adminSearchGrp.classList.remove('hidden');
-        }
-
-        // Refresh with current keywords preserved
-        refreshCurrentView();
+        finSearchGrp?.classList.add('hidden');
+        adminSearchGrp?.classList.remove('hidden');
       }
-
-      updateBatchUI();
     }
+    refreshCurrentView();
+  }
+
+  updateBatchUI();
+}
 
     // =========================================
     // 搜尋處理 — 行政編修模式
