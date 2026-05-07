@@ -569,6 +569,7 @@
       <button class="tab-btn active" id="tab-edit" onclick="switchMainTab('edit')">資料編修</button>
       <button class="tab-btn" id="tab-finance" onclick="switchMainTab('finance')">繳費登記</button>
       <button class="tab-btn" id="tab-stats" onclick="switchMainTab('stats')">報名現況</button>
+      <button class="tab-btn" id="tab-window" onclick="switchMainTab('window')">窗口管理</button>
     </div>
 
     <!-- FIX #7: search section now uses form-section wrapper + proper .search-group CSS -->
@@ -737,9 +738,59 @@
       </div>
     </div>
   </div>
+    
+<!-- 窗口管理分頁內容 -->
+<div id="section-window" class="hidden tab-content">
+  <div class="form-section">
+    <div class="section-title">團報窗口概覽</div>
+    <div style="overflow-x:auto;">
+      <table class="finance-table">
+        <thead>
+          <tr>
+            <th>窗口姓名</th>
+            <th>聯絡電話</th>
+            <th>Email</th>
+            <th>目前人數</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="window-table-body">
+          <!-- JS 會在此渲染 -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 窗口編輯彈窗 (Modal) -->
+<div id="batchWindowModal" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1200; display:flex; align-items:center; justify-content:center;">
+  <div class="container" style="max-width:500px; background:white; padding:30px; border:4px solid var(--shine-black);">
+    <h2 style="font-weight:900; border-bottom:4px solid var(--shine-yellow); margin-bottom:20px;">⚡ 修改窗口資料</h2>
+    
+    <input type="hidden" id="win-old-email">
+    
+    <div class="form-group">
+      <label>窗口姓名</label>
+      <input type="text" id="win-name" class="form-input">
+    </div>
+    <div class="form-group">
+      <label>聯絡電話</label>
+      <input type="tel" id="win-phone" class="form-input">
+    </div>
+    <div class="form-group">
+      <label>窗口 Email (修改後將作為下次索引)</label>
+      <input type="email" id="win-email" class="form-input">
+    </div>
+
+    <div style="margin-top:20px; display:flex; gap:10px;">
+      <button class="btn btn-save-action" style="flex:1;" onclick="saveWindowBatch()">儲存並批次更新</button>
+      <button class="btn" style="background:#ccc;" onclick="closeWindowModal()">取消</button>
+    </div>
+  </div>
+</div>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbzahHTTB6RNu3EQojMJsvlnWq3ghL4D11GwopKR2ZjJuf3uZ9OjCWNZAXD9swscmGQw/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxDwc1WgG_F50BZ2sLY2MrkimeTvoXm5fOBr3snP19c3BfVRFC5cSS9-9c7ZH0BhqLr/exec";
 
     let fullData = [];
     let currentTab = 'edit';
@@ -1776,6 +1827,86 @@ function printStats() {
     window.addEventListener('beforeunload', e => {
       if (isModalDirty) { e.preventDefault(); e.returnValue = ''; }
     });
+
+    /**
+ * 渲染窗口清單
+ */
+function renderWindowList() {
+  const tbody = document.getElementById('window-table-body');
+  tbody.innerHTML = '<tr><td colspan="5">讀取中...</td></tr>';
+
+  // 從你原本的 allData 進行聚合
+  const windowMap = {};
+  allData.forEach(item => {
+    // 假設 Y 欄在你的 allData 映射中叫做 contactEmail
+    const email = item.contactEmail || item.email; 
+    if (!windowMap[email]) {
+      windowMap[email] = {
+        name: item.contactName || "未填",
+        phone: item.contactPhone || "未填",
+        email: email,
+        count: 0
+      };
+    }
+    windowMap[email].count++;
+  });
+
+  let html = '';
+  Object.values(windowMap).forEach(win => {
+    html += `
+      <tr>
+        <td style="font-weight:700;">${win.name}</td>
+        <td>${win.phone}</td>
+        <td style="font-size:12px;">${win.email}</td>
+        <td style="text-align:center;"><span class="badge bg-blue">${win.count}</span></td>
+        <td>
+          <button class="btn" style="padding:4px 8px; font-size:12px; background:var(--shine-yellow);" 
+            onclick="openWindowModal('${win.email}', '${win.name}', '${win.phone}')">編輯</button>
+        </td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html || '<tr><td colspan="5">目前無團報資料</td></tr>';
+}
+
+function openWindowModal(email, name, phone) {
+  document.getElementById('win-old-email').value = email;
+  document.getElementById('win-name').value = name;
+  document.getElementById('win-phone').value = phone;
+  document.getElementById('win-email').value = email;
+  document.getElementById('batchWindowModal').classList.remove('hidden');
+}
+
+function closeWindowModal() {
+  document.getElementById('batchWindowModal').classList.add('hidden');
+}
+
+/**
+ * 傳送至 GAS 執行
+ */
+function saveWindowBatch() {
+  const payload = {
+    oldEmail: document.getElementById('win-old-email').value,
+    newWindowData: {
+      name: document.getElementById('win-name').value,
+      phone: document.getElementById('win-phone').value,
+      email: document.getElementById('win-email').value
+    },
+    adminName: sessionStorage.getItem('adminName') || "管理員"
+  };
+
+  if(!confirm("確定要更新此窗口的所有學員資料嗎？\n此操作將同步修改 W, X, Y 欄位並加註軌跡。")) return;
+
+  // 呼叫 GAS
+  google.script.run.withSuccessHandler(res => {
+    alert(res.msg);
+    if(res.success) {
+      closeWindowModal();
+      // 建議在此重新 fetchAllData 以更新介面
+      refreshData(); 
+    }
+  }).updateWindowBatch(token, payload);
+}
   </script>
 </body>
 </html>
