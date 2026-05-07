@@ -876,15 +876,17 @@ async function doLogin() {
     }
 
     // 根據當前分頁刷新畫面，保留使用者搜尋關鍵字
-    function refreshCurrentView() {
-      if (currentTab === 'finance') {
-        handleFinanceSearch();
-      } else if (currentTab === 'edit') {
-        handleAdminSearch();
-      } else if (currentTab === 'stats') {
-        refreshStats();
-      }
-    }
+function refreshCurrentView() {
+  if (currentTab === 'finance') {
+    handleFinanceSearch();
+  } else if (currentTab === 'edit') {
+    handleAdminSearch();
+  } else if (currentTab === 'stats') {
+    refreshStats();
+  } else if (currentTab === 'window') { // 新增：處理窗口管理分頁的刷新
+    renderWindowList();
+  }
+}
 
     // =========================================
     // 分頁切換
@@ -1845,35 +1847,31 @@ function printStats() {
 function renderWindowList() {
   const tbody = document.getElementById('window-table-body');
   
-  // 1. 檢查 allData 是否有資料
-  if (!window.allData || window.allData.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">目前無報名資料可供聚合</td></tr>';
+  // 使用 fullData 作為資料來源
+  const data = fullData || []; 
+
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">資料讀取中或無資料...</td></tr>';
     return;
   }
 
   const windowMap = {};
-
-  allData.forEach((item) => {
-    /**
-     * 關鍵修正：針對 GitHub 環境，allData 可能是純陣列或帶有 key 的物件
-     * W(22)=index 22, X(23)=index 23, Y(24)=index 24
-     */
-    const winEmail = (item[24] || item.contactEmail || item.email || "").toString().trim();
-    const winName  = (item[22] || item.contactName || "未填").toString().trim();
-    const winPhone = (item[23] || item.contactPhone || "未填").toString().trim();
-
+  data.forEach(item => {
+    // 依據你的資料結構（陣列或物件）抓取 W, X, Y 欄位
+    const winEmail = (item[24] || item.contactEmail || "").trim();
     if (!winEmail) return;
 
     if (!windowMap[winEmail]) {
       windowMap[winEmail] = {
-        name: winName,
-        phone: winPhone,
+        name: item[22] || item.contactName || "未填",
+        phone: item[23] || item.contactPhone || "未填",
         email: winEmail,
         count: 0
       };
     }
     windowMap[winEmail].count++;
   });
+
 
   const windows = Object.values(windowMap);
 
