@@ -1995,13 +1995,13 @@ async function saveWindowEdit() {
     const res = await api({
       action: 'updateWindowBatch',
       token: token,
+      adminName: adminName,
       payload: {
         oldEmail: oldEmail,
         newWindowData: {
           name: newName,
           phone: newPhone,
           email: newEmail,
-          adminName: adminName,
           adminNoteAddition: adminTrace // 把這條紀錄傳給後端補在每一位的 adminNote 裡
         }
       }
