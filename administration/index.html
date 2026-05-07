@@ -1829,44 +1829,72 @@ function printStats() {
     });
 
     /**
- * 渲染窗口清單
+ * 渲染窗口清單 - 增加除錯邏輯與精準索引
  */
 function renderWindowList() {
   const tbody = document.getElementById('window-table-body');
-  tbody.innerHTML = '<tr><td colspan="5">讀取中...</td></tr>';
+  
+  // 1. 檢查 allData 是否有資料
+  if (!window.allData || window.allData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">目前無報名資料可供聚合</td></tr>';
+    return;
+  }
 
-  // 從你原本的 allData 進行聚合
+  console.log("開始渲染窗口清單，總資料筆數：", allData.length);
+
   const windowMap = {};
-  allData.forEach(item => {
-    // 假設 Y 欄在你的 allData 映射中叫做 contactEmail
-    const email = item.contactEmail || item.email; 
-    if (!windowMap[email]) {
-      windowMap[email] = {
-        name: item.contactName || "未填",
-        phone: item.contactPhone || "未填",
-        email: email,
+
+  allData.forEach((item, index) => {
+    // 關鍵修正：確保這裡抓到的欄位名稱與你 fetchAllData 定義的一致
+    // 依照你的後台 W(22), X(23), Y(24)
+    const winEmail = (item.contactEmail || item.email || "").trim();
+    const winName = (item.contactName || "未填").trim();
+    const winPhone = (item.contactPhone || "未填").trim();
+
+    // 如果 Email 為空，跳過或歸類為「個人報名」
+    if (!winEmail) return;
+
+    if (!windowMap[winEmail]) {
+      windowMap[winEmail] = {
+        name: winName,
+        phone: winPhone,
+        email: winEmail,
         count: 0
       };
     }
-    windowMap[email].count++;
+    windowMap[winEmail].count++;
   });
 
+  // 2. 轉換為陣列並產生 HTML
+  const windows = Object.values(windowMap);
+  console.log("聚合後的窗口總數：", windows.length);
+
+  if (windows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">未偵測到任何團報窗口資料</td></tr>';
+    return;
+  }
+
   let html = '';
-  Object.values(windowMap).forEach(win => {
+  windows.forEach(win => {
     html += `
-      <tr>
-        <td style="font-weight:700;">${win.name}</td>
+      <tr style="border-bottom: 1px solid var(--shine-black);">
+        <td style="font-weight:900; color:var(--shine-black);">${win.name}</td>
         <td>${win.phone}</td>
-        <td style="font-size:12px;">${win.email}</td>
-        <td style="text-align:center;"><span class="badge bg-blue">${win.count}</span></td>
+        <td style="font-size:12px; font-family: monospace;">${win.email}</td>
+        <td style="text-align:center;">
+          <span class="badge" style="background:var(--shine-black); color:white;">${win.count} 人</span>
+        </td>
         <td>
-          <button class="btn" style="padding:4px 8px; font-size:12px; background:var(--shine-yellow);" 
-            onclick="openWindowModal('${win.email}', '${win.name}', '${win.phone}')">編輯</button>
+          <button class="btn" style="padding:4px 12px; background:var(--shine-yellow); font-weight:900;" 
+            onclick="openWindowModal('${win.email}', '${win.name}', '${win.phone}')">
+            修正窗口
+          </button>
         </td>
       </tr>
     `;
   });
-  tbody.innerHTML = html || '<tr><td colspan="5">目前無團報資料</td></tr>';
+
+  tbody.innerHTML = html;
 }
 
 function openWindowModal(email, name, phone) {
