@@ -788,7 +788,7 @@
 
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyDnGDgw1WDb8SlGUGyB-wHcK23d4deBOiqX0gTavYVOyZ8B2GKDdSIHFJkVbTmHHv8/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbykWwq6wOEKuc56dx1_sPoCw5fWx-NBdBmx1ILxFuyTdNZ2dujjdjdom7EbO0yLkZlr/exec";
 
     let fullData = [];
     let currentTab = 'edit';
@@ -1849,28 +1849,26 @@ function printStats() {
   const tbody = document.getElementById('window-table-body');
   if (!tbody) return;
 
-  const source = window.fullData || window.allData || (typeof fullData !== 'undefined' ? fullData : []);
+  // 現在 source 是物件陣列，例如 [{name: '...', contactEmail: '...'}, ...]
+  const source = window.fullData || [];
 
   if (source.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">⏳ 資料同步中，請稍候...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">⏳ 資料載入中...</td></tr>';
     return;
   }
 
   const windowMap = {};
 
-  source.forEach((row, idx) => {
-    if (idx === 0 || !row || !Array.isArray(row)) return;
+  source.forEach(item => {
+    // 使用剛才在 GAS 補上的 contactEmail
+    const clusterKey = item.contactEmail || "";
 
-    // 取得 Y 欄內容作為聚合 Key (Index 24)
-    const clusterKey = row[24] ? String(row[24]).trim() : "";
-
-    // 只要這格不是空的，就進行彙整
-    if (clusterKey !== "") {
+    if (clusterKey !== "" && clusterKey.includes('@')) {
       if (!windowMap[clusterKey]) {
         windowMap[clusterKey] = {
-          name: row[22] ? String(row[22]).trim() : "未填",  // W 欄
-          phone: row[23] ? String(row[23]).trim() : "未填", // X 欄
-          email: clusterKey, // 將識別碼存為 email 方便後續渲染調用
+          name: item.contactName || "未填",
+          phone: item.contactPhone || "未填",
+          email: clusterKey,
           count: 0
         };
       }
@@ -1881,36 +1879,25 @@ function printStats() {
   const windows = Object.values(windowMap);
 
   if (windows.length === 0) {
-    // 增加一個 Debug 顯示，讓我們知道第 25 欄到底讀到了什麼
-    const debugSample = source[1] && source[1][24] ? source[1][24] : "完全空白";
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">
-      已讀取 ${source.length} 筆，但未發現團報資訊。<br>
-      <small style="color:gray;">第一筆資料第 25 欄內容為：${debugSample}</small>
-    </td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">目前無團報窗口資料。</td></tr>';
     return;
   }
 
-  // 渲染表格內容
+  // 渲染 HTML (這裡維持原樣)
   tbody.innerHTML = windows.map(win => `
-    <tr style="border-bottom: 1px solid #eee;">
-      <td style="font-weight:900; color:#2c3e50;">${win.name}</td>
+    <tr>
+      <td style="font-weight:900;">${win.name}</td>
       <td>${win.phone}</td>
-      <td style="font-family:monospace; font-size:12px; color:#555;">${win.email}</td>
-      <td style="text-align:center;">
-        <span class="badge" style="background:#e67e22; color:white; padding:2px 8px; border-radius:4px;">
-          ${win.count}
-        </span>
-      </td>
+      <td style="font-family:monospace;">${win.email}</td>
+      <td style="text-align:center;"><span class="badge">${win.count}</span></td>
       <td>
-        <button class="btn" style="background:#ffc107; border:none; padding:4px 10px; cursor:pointer; font-weight:bold;"  
-          onclick="openWindowModal('${win.email}', '${win.name}', '${win.phone}')">
+        <button class="btn" onclick="openWindowModal('${win.email}', '${win.name}', '${win.phone}')">
           修正窗口
         </button>
       </td>
     </tr>
   `).join('');
 }
-
 /**
  * 開啟 Modal 並帶入舊資料
  */
