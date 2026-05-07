@@ -1845,53 +1845,60 @@ function printStats() {
   const tbody = document.getElementById('window-table-body');
   if (!tbody) return;
 
-  // 嘗試從所有可能的變數抓資料
+  // 1. 確保資料源存在且為陣列
   const source = window.fullData || window.allData || (typeof fullData !== 'undefined' ? fullData : []);
 
-  if (!source || source.length === 0) {
-    console.warn("【窗口管理】資料尚未就緒，0.5秒後重試...");
+  if (source.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">⏳ 資料同步中，請稍候...</td></tr>';
-    
-    // 💡 自動重試機制：如果沒資料，半秒後再呼叫自己一次
-    setTimeout(renderWindowList, 500); 
     return;
   }
 
-  console.log("【窗口管理】開始聚合，總筆數：", source.length);
-
   const windowMap = {};
+
   source.forEach((row, idx) => {
-    if (idx === 0) return; // 跳過標題列
+    // 【防護機制 A】跳過標題列
+    if (idx === 0) return;
     
+    // 【防護機制 B】關鍵修正！確保 row 存在且長度足夠，避免 Uncaught TypeError
+    if (!row || !Array.isArray(row) || row.length < 25) return;
+
     // 鎖定 Y 欄 (Index 24)
     const winEmail = String(row[24] || "").trim();
-    if (!winEmail || !winEmail.includes('@')) return;
-
-    if (!windowMap[winEmail]) {
-      windowMap[winEmail] = {
-        name: String(row[22] || "未填"),
-        phone: String(row[23] || "未填"),
-        email: winEmail,
-        count: 0
-      };
+    
+    // 【過濾條件】只處理有填寫 Email 且符合格式的團報窗口
+    if (winEmail && winEmail.includes('@')) {
+      if (!windowMap[winEmail]) {
+        windowMap[winEmail] = {
+          name: String(row[22] || "未填").trim(),  // W 欄
+          phone: String(row[23] || "未填").trim(), // X 欄
+          email: winEmail,
+          count: 0
+        };
+      }
+      windowMap[winEmail].count++;
     }
-    windowMap[winEmail].count++;
   });
 
-  // ... 渲染 HTML 的邏輯 ...
   const windows = Object.values(windowMap);
+
   if (windows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">已讀取資料，但無團報窗口資訊</td></tr>';
-      return;
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">已讀取 789 筆資料，但未發現團報窗口 Email (第 25 欄)。</td></tr>';
+    return;
   }
 
+  // 渲染表格內容
   tbody.innerHTML = windows.map(win => `
     <tr>
-      <td><b>${win.name}</b></td>
+      <td style="font-weight:900; color:#2c3e50;">${win.name}</td>
       <td>${win.phone}</td>
-      <td>${win.email}</td>
-      <td style="text-align:center;">${win.count}</td>
-      <td><button class="btn" onclick="openWindowModal('${win.email}','${win.name}','${win.phone}')">修正</button></td>
+      <td style="font-family:monospace; font-size:12px; color:#555;">${win.email}</td>
+      <td style="text-align:center;"><span class="badge" style="background:#e67e22; color:white; padding:2px 8px; border-radius:4px;">${win.count}</span></td>
+      <td>
+        <button class="btn" style="background:var(--shine-yellow); border:none; padding:4px 10px; cursor:pointer;" 
+          onclick="openWindowModal('${win.email}', '${win.name}', '${win.phone}')">
+          修正窗口
+        </button>
+      </td>
     </tr>
   `).join('');
 }
