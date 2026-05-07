@@ -868,7 +868,11 @@ async function doLogin() {
         token: sessionStorage.getItem('admin_token')
       });
       if (res && res.success) {
+        // 1. 更新原本的變數 (供現有功能使用)
         fullData = res.data;
+    
+        // 2. 同步掛載到 window (確保所有分頁與 Console 都能存取)
+        window.fullData = res.data;
         // FIX #11: always build window options regardless of current tab
         updateWindowFilterOptions();
         refreshCurrentView();
