@@ -824,7 +824,7 @@
 
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbykWwq6wOEKuc56dx1_sPoCw5fWx-NBdBmx1ILxFuyTdNZ2dujjdjdom7EbO0yLkZlr/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzQTd24ex6mLmN6ppXLGVnlC_qvpv8eWyQSDkOoZ-JbIGUyJRohfV-ukRx7r9SmYg40/exec";
 
     let fullData = [];
     let currentTab = 'edit';
@@ -1942,81 +1942,85 @@ function printStats() {
   `).join('');
 }
     
-/**
- * 開啟 Modal 並帶入舊資料
- */
 function openWindowModal(email, name, phone) {
   document.getElementById('win-old-email').value = email;
   document.getElementById('win-name').value = name;
   document.getElementById('win-phone').value = phone;
   document.getElementById('win-email').value = email;
-  document.getElementById('batchWindowModal').classList.remove('hidden');
+  
+  const modal = document.getElementById('batchWindowModal');
+  modal.classList.remove('hidden');
+  
+  // 防止後方表格滾動
+  document.body.style.overflow = 'hidden';
 }
 
-/**
- * 關閉 Modal
- */
 function closeWindowModal() {
   document.getElementById('batchWindowModal').classList.add('hidden');
+  
+  // 恢復滾動
+  document.body.style.overflow = 'auto';
 }
 
-/**
- * 傳送至 GAS 執行 (GitHub 專用 Fetch 版本)
- */
-async function saveWindowBatch() {
-  // 1. 取得登入資訊
-  const token = sessionStorage.getItem('userToken'); // 請確保與你 login 存的 key 一致
-  const adminName = sessionStorage.getItem('adminName') || "管理員";
-  
+async function saveWindowEdit() {
+  // 1. 取得登入者資訊與 Token (對齊你的命名 admin_name)
+  const token = sessionStorage.getItem('admin_token');
+  const adminName = sessionStorage.getItem('admin_name') || "管理員";
+  const now = new Date().toLocaleString('zh-TW', { hour12: false });
+
   if (!token) {
     alert("驗證過期，請重新登入");
     return;
   }
 
-  // 2. 封裝資料
-  const payload = {
-    oldEmail: document.getElementById('win-old-email').value,
-    newWindowData: {
-      name: document.getElementById('win-name').value,
-      phone: document.getElementById('win-phone').value,
-      email: document.getElementById('win-email').value
-    }
-  };
+  // 2. 取得表單資料
+  const oldEmail = document.getElementById('win-old-email').value;
+  const newName = document.getElementById('win-name').value.trim();
+  const newPhone = document.getElementById('win-phone').value.trim();
+  const newEmail = document.getElementById('win-email').value.trim();
 
-  if(!confirm(`確定要更新「${payload.newWindowData.name}」及其關連的所有學員資料嗎？\n此操作將同步修改 W, X, Y 欄位。`)) return;
+  if (!newName || !newEmail) {
+    alert("姓名與識別碼(Email)為必填項。");
+    return;
+  }
 
-  // 3. 顯示 Loading (如果你的 UI 有這個功能)
-  // toggleLoading(true);
+  // 3. 生成行政異動紀錄 (對齊你的格式)
+  const changeReason = `[批次更新窗口資訊] 由 ${adminName} 執行。`;
+  const adminTrace = `--- 📅 ${now} (${adminName}) ---\n🔍 批次更新窗口：${newName} (${newEmail})\n📝 備註：此操作將同步更新所有關連學員的 W, X, Y 欄位。\n\n`;
+
+  if(!confirm(`確定要更新「${newName}」及其關連的所有學員資料嗎？\n這將會寫入行政異動紀錄。`)) return;
 
   try {
-    const response = await fetch(GAS_WEB_APP_URL, { // 請確保全域有定義 GAS_WEB_APP_URL
-      method: "POST",
-      body: JSON.stringify({
-        action: "updateWindowBatch",
-        token: token,
-        adminName: adminName,
-        payload: payload
-      })
+    // 4. 調用現有的 api 封裝函式 (對齊你 fetchAllData 的用法)
+    const res = await api({
+      action: 'updateWindowBatch',
+      token: token,
+      payload: {
+        oldEmail: oldEmail,
+        newWindowData: {
+          name: newName,
+          phone: newPhone,
+          email: newEmail,
+          adminNoteAddition: adminTrace // 把這條紀錄傳給後端補在每一位的 adminNote 裡
+        }
+      }
     });
 
-    const res = await response.json();
-    
-    if (res.success) {
-      alert(res.msg);
+    if (res && res.success) {
+      alert("✅ " + res.msg);
       closeWindowModal();
-      // 核心：GitHub 前端需要重新 Fetch 全域資料
-      if (typeof fetchAllData === 'function') {
-        await fetchAllData(); 
-        renderWindowList(); // 重新渲染清單
+      
+      // 5. 重新刷新資料 (對齊你 fetchData 的用法)
+      if (typeof fetchData === 'function') {
+        await fetchData(); 
+        renderWindowList(); 
       }
     } else {
-      alert("更新失敗：" + res.msg);
+      alert("❌ 更新失敗：" + (res ? res.msg : "未知錯誤"));
     }
   } catch (error) {
-    console.error("Fetch Error:", error);
-    alert("網路連線或後端服務異常");
-  } finally {
-    // toggleLoading(false);
+    console.error("Window Update Error:", error);
+    alert("系統連線異常，請檢查控制台。");
   }
 }
   </script>
