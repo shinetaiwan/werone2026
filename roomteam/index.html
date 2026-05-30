@@ -331,7 +331,7 @@
 
   <script>
     // 📌 請將部署後的 Google Apps Script 網頁應用程式 URL 貼在此處
-    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbyoWau4J-Bqmv1sa8zSABINIJFEUNUEnahbAs0GllUVEgEfvCU5sDSompaQIghjaXwoPA/exec";
+    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbytdi0UekZnT6w3Xj-Cl10HXfpaSl1JzNldou3UsiBz_8z6lM-OG5Y9a8U6buSE8sMcIw/exec";
 
     // 安全憑證暫存區
     let sessionUser = { username: "", token: "", realName: "" };
@@ -989,13 +989,11 @@
     // =========================================
     // 💾 批次變更同步提交邏輯
     // =========================================
-    // 💡 完全復原：維持你最原始能動的 updatesPayload 傳參模式
+// 💡 前端儲存：將憑證改為真實姓名（realName）綁定在每筆資料內
     async function commitDeltaChangesToServer(type) {
-      // 1. 還原：直接拉取 Map 的 values 轉成陣列
       const rawUpdates = Array.from(deltaChangesMap.values());
       if (rawUpdates.length === 0) { alert("無任何變更需要儲存。"); return; }
 
-      // 如果有更動小組名，防呆避免出現完全同名的空群組
       if (type === 'group') {
         const inputs = document.querySelectorAll('input[onblur*="renameVirtualGroup"]');
         const names = Array.from(inputs).map(i => i.value.trim()).filter(n => n !== "");
@@ -1011,20 +1009,22 @@
       saveBtn.disabled = true;
 
       try {
-        // 💡 取得當前全域登入者憑證
-        const loginUsername = sessionUser.username || "未知帳號";
+        // 💡 調整：改抓取你登入成功時核發的真實姓名與驗證憑證
+        const loginRealName = sessionUser.realName || "未知管理員";
+        const loginUsername = sessionUser.username || "";
         const loginToken = sessionUser.token || "";
 
-        // 💡 僅在物件內部附加稽核屬性，不破壞陣列結構
+        // 💡 將真實姓名與驗證資訊融入每筆異動資料
         const updatesPayload = rawUpdates.map(item => {
           return {
             ...item,
-            username: loginUsername,
+            realName: loginRealName, // 👈 傳送姓名用於記錄
+            username: loginUsername, // 👈 維持傳送帳號用於後端 validateToken
             token: loginToken
           };
         });
 
-        // 2. 還原：完全維持你原本能成功送出的寫入呼叫
+        // 完全維持原本百分之百通暢的傳參架構
         const msg = await requestBackendApi("batchUpdateCampData", { updates: updatesPayload });
         
         alert("✅ 成功！" + msg);
@@ -1035,7 +1035,6 @@
       } catch (err) {
         alert("❌ 寫入失敗：" + err.message);
       } finally {
-        // 確保按鈕一定會解鎖，避免卡死
         if (saveBtn) {
           saveBtn.innerText = origText;
           saveBtn.disabled = false;
