@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>營隊行政生活大後台</title>
+  <title>WE R ONE 2026 編組編寢管理後台</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     /* =========================================
@@ -27,7 +27,7 @@
     }
 
     .container {
-      max-width: 1350px; 
+      max-width: 1300px; 
       margin: 20px auto; 
       background: var(--shine-bg);
       padding: clamp(20px, 4vw, 40px); 
@@ -56,7 +56,8 @@
       border: 2px solid var(--shine-black); 
       padding: 20px; 
       background: var(--shine-light); 
-      margin-bottom: 30px; 
+      margin-bottom: 30px;
+      position: relative;
     }
 
     .section-title { 
@@ -79,7 +80,6 @@
       width: 100%; 
       box-sizing: border-box; 
       margin-top: 5px; 
-      background: #fff;
     }
     input:focus, select:focus { outline: 3px solid var(--shine-black); }
 
@@ -104,8 +104,7 @@
       text-transform: uppercase; 
       text-decoration: none; 
       transition: all 0.1s ease;
-      background: var(--shine-bg); 
-      color: var(--shine-black); 
+      font-family: "Inter", "Noto Sans TC", sans-serif;
     }
 
     .btn:hover {
@@ -222,14 +221,15 @@
 
   <div class="container">
     
-    <div id="auth-block" class="form-section" style="max-width: 500px; margin: 60px auto;">
-      <span class="section-title">🔒 營隊行政生活後台登入</span>
-      <div style="margin-top: 10px;">
-        <label>行政人員帳號</label>
-        <input type="text" id="adm_account" placeholder="請輸入使用者帳號">
+    <div id="auth-block" class="container" style="max-width: 500px; margin-top: 80px;">
+      <div class="section-title">行政管理後台驗證</div>
+      <div class="form-section">
+        <div class="form-group">
+        <label>帳號</label>
+        <input type="text" id="adm_account" placeholder="請輸入帳號">
       </div>
-      <div style="margin-top: 15px;">
-        <label>安全雜湊密碼</label>
+      <div class="form-group" style="padding:10px 0 0;">
+        <label>密碼</label>
         <input type="password" id="adm_password" placeholder="請輸入密碼">
       </div>
       <button class="btn btn-save-action" style="margin-top: 25px;" onclick="handleAdminAuth()">認證憑證並同步雲端</button>
@@ -243,9 +243,9 @@
       </header>
 
       <div class="tab-container">
-        <button id="tab-btn-group" class="btn btn-next active" onclick="switchTab('group')">⛺ 1. 編組調整作業</button>
-        <button id="tab-btn-dorm" class="btn btn-next" onclick="switchTab('dorm')">🛏️ 2. 全員編寢分房</button>
-        <button id="tab-btn-role" class="btn btn-next" onclick="switchTab('role')">🛡️ 3. 隊輔配額精確控管</button>
+        <button id="tab-btn-group" class="btn btn-next active" onclick="switchTab('group')">正式編組</button>
+        <button id="tab-btn-dorm" class="btn btn-next" onclick="switchTab('dorm')">正式編寢</button>
+        <button id="tab-btn-role" class="btn btn-next" onclick="switchTab('role')">隊輔確認</button>
       </div>
 
       <div id="tab-content-group" class="tab-content">
@@ -272,7 +272,7 @@
         </div>
 
         <div id="save-bar-group" class="save-bar hidden">
-          <div class="save-info-text">⚠️ 偵測到目前大隊或小組分配有些微變動，請記得點擊右側同步至試算表！</div>
+          <div class="save-info-text">⚠️ 偵測到目前大隊或小組分配有變動，請記得點擊右側同步至試算表！</div>
           <button class="btn btn-save-action" style="width:250px;" onclick="commitDeltaChangesToServer('group')">💾 儲存小組異動</button>
         </div>
       </div>
