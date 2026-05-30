@@ -331,7 +331,7 @@
 
   <script>
     // 📌 請將部署後的 Google Apps Script 網頁應用程式 URL 貼在此處
-    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbz-gijs782MYvwRLSFUKqPPLsUvfZAXQND_kklxVb3xLU82sGKEBDFCIQVSSE7p-5L9yw/exec";
+    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbwQgiorDQ9-Qvs5vfX3NChExmgszcZDAs-j2mqxxQbTlYSH3-3DKSyZt05MyJn_8bp4tw/exec";
 
     // 安全憑證暫存區
     let sessionUser = { username: "", token: "", realName: "" };
@@ -991,9 +991,10 @@
     // =========================================
     // 💡 前端儲存：讀取 sessionUser 動態憑證並送出
     // 💡 前端儲存：加入確切的 finally 解鎖機制，防範按鈕卡死
+    // 💡 前端儲存：將使用者憑證直接綁定在每筆資料內
     async function commitDeltaChangesToServer(type) {
-      const updatesPayload = Array.from(deltaChangesMap.values());
-      if (updatesPayload.length === 0) { alert("無任何變更需要儲存。"); return; }
+      const rawUpdates = Array.from(deltaChangesMap.values());
+      if (rawUpdates.length === 0) { alert("無任何變更需要儲存。"); return; }
 
       if (type === 'group') {
         const inputs = document.querySelectorAll('input[onblur*="renameVirtualGroup"]');
@@ -1010,29 +1011,31 @@
       saveBtn.disabled = true;
 
       try {
+        // 💡 抓取當前登入者資訊
         const loginUsername = sessionUser.username || "未知帳號";
         const loginToken = sessionUser.token || "";
 
-        // 💡 呼叫後端 API
-        const msg = await requestBackendApi("batchUpdateCampData", { 
-          updates: updatesPayload,
-          username: loginUsername,
-          token: loginToken
+        // 💡 關鍵改動：將憑證直接塞進每一筆異動資料物件中，防範底層 API 展開參數
+        const updatesPayload = rawUpdates.map(item => {
+          return {
+            ...item,
+            username: loginUsername,
+            token: loginToken
+          };
         });
+
+        // 將整包帶有憑證的陣列送往後端
+        const msg = await requestBackendApi("batchUpdateCampData", updatesPayload);
         
         alert("✅ 成功！" + msg);
-        
-        // 成功後的狀態重置
         deltaChangesMap.clear();
         isDataDirty = false;
         hideAllSaveBars();
-        await loadAllCampData(); // 重新整理讀取最新狀態
+        await loadAllCampData(); // 重新整理
         
       } catch (err) {
         alert("❌ 寫入失敗：" + err.message);
       } finally {
-        // 💡 關鍵修復：不論 try 成功還是 catch 失敗，按鈕狀態與文字必定要強制回復！
-        // 這樣後續再次變動、跳出儲存 Bar 時，按鈕才不會維持在 disabled 狀態。
         if (saveBtn) {
           saveBtn.innerText = origText;
           saveBtn.disabled = false;
