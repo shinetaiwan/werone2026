@@ -331,7 +331,7 @@
 
   <script>
     // 📌 請將部署後的 Google Apps Script 網頁應用程式 URL 貼在此處
-    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbwQgiorDQ9-Qvs5vfX3NChExmgszcZDAs-j2mqxxQbTlYSH3-3DKSyZt05MyJn_8bp4tw/exec";
+    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbwY_VE6yRqxVWzaPOQao7evysG10uIy_AEkVDW66Wtu6mXZn4BkpS72O-Ak4AFYoTkNGA/exec";
 
     // 安全憑證暫存區
     let sessionUser = { username: "", token: "", realName: "" };
@@ -992,6 +992,7 @@
     // 💡 前端儲存：讀取 sessionUser 動態憑證並送出
     // 💡 前端儲存：加入確切的 finally 解鎖機制，防範按鈕卡死
     // 💡 前端儲存：將使用者憑證直接綁定在每筆資料內
+    // 💡 前端儲存：還原最相容的物件結構，但將帳號憑證融入每筆更新資料中
     async function commitDeltaChangesToServer(type) {
       const rawUpdates = Array.from(deltaChangesMap.values());
       if (rawUpdates.length === 0) { alert("無任何變更需要儲存。"); return; }
@@ -1011,11 +1012,10 @@
       saveBtn.disabled = true;
 
       try {
-        // 💡 抓取當前登入者資訊
         const loginUsername = sessionUser.username || "未知帳號";
         const loginToken = sessionUser.token || "";
 
-        // 💡 關鍵改動：將憑證直接塞進每一筆異動資料物件中，防範底層 API 展開參數
+        // 💡 融入憑證：讓每筆學員異動資料都自帶操作者是誰
         const updatesPayload = rawUpdates.map(item => {
           return {
             ...item,
@@ -1024,8 +1024,8 @@
           };
         });
 
-        // 將整包帶有憑證的陣列送往後端
-        const msg = await requestBackendApi("batchUpdateCampData", updatesPayload);
+        // 💡 還原你原本百分之百能成功通訊的參數結構！
+        const msg = await requestBackendApi("batchUpdateCampData", { updates: updatesPayload });
         
         alert("✅ 成功！" + msg);
         deltaChangesMap.clear();
