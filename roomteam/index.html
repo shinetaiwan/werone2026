@@ -331,7 +331,7 @@
 
   <script>
     // 📌 請將部署後的 Google Apps Script 網頁應用程式 URL 貼在此處
-    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbyOzsg2Bp4PRX6B_fvFWsYFPuiz85JxulU0x6eQkCsCHnEsdJZjHfWTK8SzA3BZo7PCOw/exec";
+    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbyyXeVLk3c21B4-l6ar6XAllVr_CDCsV7PhWeD7wRtSmkIrP1yZHZ5-WWbGyxHzHNQ6dQ/exec";
 
     // 安全憑證暫存區
     let sessionUser = { username: "", token: "", realName: "" };
@@ -989,6 +989,7 @@
     // =========================================
     // 💾 批次變更同步提交邏輯
     // =========================================
+    // 💡 前端儲存：讀取 sessionUser 動態憑證並送出
     async function commitDeltaChangesToServer(type) {
       const updatesPayload = Array.from(deltaChangesMap.values());
       if (updatesPayload.length === 0) { alert("無任何變更需要儲存。"); return; }
@@ -997,7 +998,10 @@
       if (type === 'group') {
         const inputs = document.querySelectorAll('input[onblur*="renameVirtualGroup"]');
         const names = Array.from(inputs).map(i => i.value.trim()).filter(n => n !== "");
-        if (names.filter((item, index) => names.indexOf(item) !== index).length > 0) { alert(`❌ 儲存終止！偵測到重複的小組名稱設定，請修改後再送出。`); return; }
+        if (names.filter((item, index) => names.indexOf(item) !== index).length > 0) { 
+          alert(`❌ 儲存終止！偵測到重複的小組名稱設定，請修改後再送出。`); 
+          return; 
+        }
       }
 
       const saveBtn = document.querySelector(`#save-bar-${type} .btn-save-action`);
@@ -1006,7 +1010,17 @@
       saveBtn.disabled = true;
 
       try {
-        const msg = await requestBackendApi("batchUpdateCampData", { updates: updatesPayload });
+        // 💡 精確對齊：直接抓取 handleAdminAuth 寫入的 sessionUser 憑證
+        const loginUsername = sessionUser.username || "未知帳號";
+        const loginToken = sessionUser.token || "";
+
+        // 將更新清冊、驗證帳號與 Token 一併打包送往後端
+        const msg = await requestBackendApi("batchUpdateCampData", { 
+          updates: updatesPayload,
+          username: loginUsername,
+          token: loginToken
+        });
+        
         alert("✅ 成功！" + msg);
         deltaChangesMap.clear();
         isDataDirty = false;
