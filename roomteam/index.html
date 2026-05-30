@@ -331,7 +331,7 @@
 
   <script>
     // 📌 請將部署後的 Google Apps Script 網頁應用程式 URL 貼在此處
-    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbzLK4UdKcawNQXGbIK6vG4jdesFMT79KbqT2amxhqDPIQy7vqoMnRCDQRS4aIpxM4Zu/exec";
+    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbzAwQj8kt4Txuxxr5lKsy2kig3059zwWxZNX2ccgh8KeQtH4joMhYxSJEd6XdedvcOwQw/exec";
 
     // 安全憑證暫存區
     let sessionUser = { username: "", token: "", realName: "" };
@@ -342,6 +342,13 @@
     let deltaChangesMap = new Map(); // 存放尚未上傳的異動資料
 
     // 分頁一（編組）專用控制
+    const GROUP_MAJORS_DICTIONARY = {
+      "全部": [], // 保留全部檢視
+      "第一大隊": ["第一大隊_01組", "第一大隊_02組", "第一大隊_03組", "第一大隊_04組", "第一大隊_05組"],
+      "第二大隊": ["第二大隊_01組", "第二大隊_02組", "第二大隊_03組", "第二大隊_04組"],
+      "青少大隊": ["青少大隊_A組", "青少大隊_B組", "青少大隊_C組"],
+      "未歸類大隊": [] // 專門放置無規則或空白的臨時正式組
+    };
     let currentSelectedGroupTab = "全部"; 
     let activeGroupId = null;
     let v_createdGroups = [];
@@ -487,36 +494,37 @@
     }
 
     // =========================================
-    // ⛺ 功能模組一：編組調整主要邏輯 (依團報線索有秩序群聚排序)
+    // ⛺ 功能模組一：編組調整主要邏輯 (優化字典、窗口分群與歷史標籤)
     // =========================================
     function renderGroupTab() {
       const poolBox = document.getElementById("group-pool-container");
       const canvasBox = document.getElementById("group-grid-canvas");
       const searchKeyword = document.getElementById("group-search-input").value.trim().toLowerCase();
 
+      // 1. 渲染頂部「大隊切換分流導覽列」（來自固定字典）
+      const majorTabsContainer = document.getElementById("group-main-tabs");
+      majorTabsContainer.innerHTML = Object.keys(GROUP_MAJORS_DICTIONARY).map(tabName => `
+        <button class="btn btn-next ${currentSelectedGroupTab === tabName ? 'active' : ''}" 
+                onclick="currentSelectedGroupTab='${tabName}'; renderGroupTab();">${tabName}</button>
+      `).join('');
+
       const localGroupMap = {};
       const unassignedPool = [];
-      const discoveredMajorClusters = new Set(["全部", "未編大隊"]);
 
-      // 1. 解析與清洗全名冊狀態
+      // 2. 分流解析全體學員狀態
       rawCampList.forEach(m => {
         const delta = deltaChangesMap.get(m.row);
         const finalGroup = (delta && delta.group !== undefined) ? delta.group : m.group;
-
-        // 分析學員第 21 欄團報線索，自動拆出「大隊級規劃」切換鈕 (例如："第一大隊_A組" 拆出 "第一大隊")
-        if (m.origGroupClue && m.origGroupClue.includes("_")) {
-          discoveredMajorClusters.add(m.origGroupClue.split("_")[0].trim());
-        } else if (m.origGroupClue) {
-          discoveredMajorClusters.add(m.origGroupClue.trim());
-        }
 
         if (finalGroup && finalGroup.trim() !== "") {
           if (!localGroupMap[finalGroup]) localGroupMap[finalGroup] = [];
           localGroupMap[finalGroup].push(m);
         } else {
-          // 搜尋過濾過篩
+          // 搜尋過濾條件
           if (searchKeyword) {
-            if (m.name.toLowerCase().includes(searchKeyword) || m.origGroupClue.toLowerCase().includes(searchKeyword)) {
+            if (m.name.toLowerCase().includes(searchKeyword) || 
+                m.church.toLowerCase().includes(searchKeyword) || 
+                m.origGroupClue.toLowerCase().includes(searchKeyword)) {
               unassignedPool.push(m);
             }
           } else {
@@ -525,57 +533,90 @@
         }
       });
 
-      // 🎯 核心訴求二：讓待分配名單「依據團報預編組 (第21欄)」進行有秩序的 A-Z 升序排列
-      unassignedPool.sort((a, b) => String(a.origGroupClue).localeCompare(String(b.origGroupClue), 'zh-Hant'));
+      // 3. 🎯 訴求 2：待選池依據「報名窗口/預編組(第21欄)」進行有秩序的【分群與分塊呈現】
+      // 先將學員依照 origGroupClue 分組
+      const clusteredPool = {};
+      unassignedPool.forEach(m => {
+        const clueKey = m.origGroupClue || "未註明窗口";
+        if (!clusteredPool[clueKey]) clusteredPool[clueKey] = [];
+        clusteredPool[clueKey].push(m);
+      });
 
-      // 2. 渲染大隊切換分流按鈕
-      const majorTabsContainer = document.getElementById("group-main-tabs");
-      const sortedMajorTabs = Array.from(discoveredMajorClusters).sort();
-      majorTabsContainer.innerHTML = sortedMajorTabs.map(tabName => `
-        <button class="btn btn-next ${currentSelectedGroupTab === tabName ? 'active' : ''}" onclick="currentSelectedGroupTab='${tabName}'; renderGroupTab();">${tabName}</button>
-      `).join('');
+      // 排序窗口名稱
+      const sortedClueKeys = Object.keys(clusteredPool).sort();
 
-      // 3. 輸出左側名單池 HTML
-      poolBox.innerHTML = unassignedPool.map(m => {
-        const hint = m.origGroupClue ? `<span class="clue-badge">線索:${m.origGroupClue}</span>` : "";
-        return `
-          <div class="pool-item" onclick="assignToActiveGroup(${m.row})">
-            <span>${m.name} <small style="color:#666;">(${m.gender})</small></span>
-            ${hint}
-          </div>`;
-      }).join('') || '<div class="empty-placeholder" style="color:#fff;">(全體均已分組完成)</div>';
-
-      // 4. 過濾出屬於目前所選大隊的小組卡片
-      let groupNameList = Array.from(new Set([...Object.keys(localGroupMap), ...v_createdGroups])).sort();
-      
-      if (currentSelectedGroupTab !== "全部") {
-        groupNameList = groupNameList.filter(gName => {
-          if (currentSelectedGroupTab === "未編大隊") {
-            return !gName.includes("_");
-          }
-          return gName.startsWith(currentSelectedGroupTab);
-        });
+      // 輸出左側名單池 HTML (呈現黑底白字的窗口大標，內含 姓名 + 教會 的俐落排版)
+      if (unassignedPool.length === 0) {
+        poolBox.innerHTML = '<div class="empty-placeholder" style="color:#fff;">(全體均已分組完成)</div>';
+      } else {
+        poolBox.innerHTML = sortedClueKeys.map(clueKey => {
+          const studentsInClue = clusteredPool[clueKey];
+          return `
+            <div style="margin-bottom: 15px; border: 2px solid var(--shine-black); background: #222; padding: 5px;">
+              <div style="color: var(--shine-lime); font-weight: 900; font-size: 13px; padding-bottom: 5px; border-bottom: 1px solid #444;">
+                📦 窗口：${clueKey} (${studentsInClue.length}人)
+              </div>
+              <div style="margin-top: 5px;">
+                ${studentsInClue.map(m => `
+                  <div class="pool-item" onclick="assignToActiveGroup(${m.row})" style="padding: 6px 10px; margin-bottom: 4px;">
+                    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px;">
+                      <span style="font-size: 15px; font-weight: 900; color: var(--shine-black);">${m.name}</span>
+                      <span style="font-size: 11px; font-weight: 700; color: #666;">⛪ ${m.church}</span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('');
       }
 
-      // 5. 繪製右側畫布小組卡片
-      canvasBox.innerHTML = groupNameList.map(gName => {
+      // 4. 🎯 訴求 1：根據所選大隊，決定右側畫布要顯示哪些小組卡片
+      let allowedGroups = [];
+      if (currentSelectedGroupTab === "全部") {
+        // 全局檢視：顯示所有存在於總表或新創的小組
+        allowedGroups = Array.from(new Set([...Object.keys(localGroupMap), ...v_createdGroups])).sort();
+      } else if (currentSelectedGroupTab === "未歸類大隊") {
+        // 找出不屬於任何大隊字典定義的散兵小組
+        const allDefinedRooms = Object.values(GROUP_MAJORS_DICTIONARY).flat();
+        const allActiveGroups = Array.from(new Set([...Object.keys(localGroupMap), ...v_createdGroups]));
+        allowedGroups = allActiveGroups.filter(g => !allDefinedRooms.includes(g));
+      } else {
+        // 嚴格對齊字典定義的小組，並補上行政在該大隊下臨時新創的組別
+        const dictionaryGroups = GROUP_MAJORS_DICTIONARY[currentSelectedGroupTab] || [];
+        const dynamicCreatedInMajor = v_createdGroups.filter(g => g.startsWith(currentSelectedGroupTab));
+        allowedGroups = Array.from(new Set([...dictionaryGroups, ...dynamicCreatedInMajor])).sort();
+      }
+
+      // 5. 🎯 訴求 3：繪製右側小組卡片 (加入教會資訊與原預編歷史痕跡標籤)
+      canvasBox.innerHTML = allowedGroups.map(gName => {
         const ms = localGroupMap[gName] || [];
         const isActive = (activeGroupId === gName);
         return `
           <div class="item-card ${isActive ? 'active-group' : ''}" onclick="selectActiveGroup('${gName}')">
             <div class="card-header">
-              <input type="text" value="${gName}" onblur="renameVirtualGroup('${gName}', this.value)" style="font-weight:900; font-size:15px; border:none; background:transparent; width:75%; padding:0;" onclick="event.stopPropagation()">
+              <input type="text" value="${gName}" onblur="renameVirtualGroup('${gName}', this.value)" 
+                     style="font-weight:900; font-size:15px; border:none; background:transparent; width:75%; padding:0;" 
+                     onclick="event.stopPropagation()">
               <span class="status-tag">${ms.length} 人</span>
             </div>
             <div style="flex-grow:1;">
               ${ms.length > 0 ? ms.map(m => `
-                <div class="member-row">
-                  <span>• ${m.name} <small style="color:#666;">(${m.gender})</small></span>
-                  <span style="color:var(--shine-red); cursor:pointer; font-size:16px;" onclick="event.stopPropagation(); removeStudentFromGroup(${m.row})">×</span>
+                <div class="member-row" style="align-items: flex-start; flex-direction: column; padding: 8px 0; gap: 4px;">
+                  <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                    <span style="font-weight: 900; font-size: 15px;">• ${m.name} <small style="font-weight: 700; color: #555;">(${m.church})</small></span>
+                    <span style="color:var(--shine-red); cursor:pointer; font-size:18px; font-weight:900;" 
+                          onclick="event.stopPropagation(); removeStudentFromGroup(${m.row})">×</span>
+                  </div>
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                    <span class="clue-badge" style="background: var(--shine-light); font-size: 10px; color: #444; border-style: dashed;">
+                      ↩️ 原窗: ${m.origGroupClue || '無'}
+                    </span>
+                  </div>
                 </div>`).join('') : '<div class="empty-placeholder">(此組尚無成員)</div>'}
             </div>
           </div>`;
-      }).join('') || '<div class="empty-placeholder" style="grid-column: 1/-1;">此大隊目前尚無小組，請點擊上方開拓小組。</div>';
+      }).join('') || '<div class="empty-placeholder" style="grid-column: 1/-1;">此大隊區段目前尚無對應小組，可點選上方「開拓空小組」建立。</div>';
     }
 
     function selectActiveGroup(gName) { activeGroupId = gName; renderGroupTab(); document.getElementById("group-focus-banner").innerText = `🎯 當前鎖定目標：【${gName}】`; }
