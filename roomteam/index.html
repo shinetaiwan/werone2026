@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>營隊編組編寢大後台</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --cyber-bg: #0a0b0e;
+      --cyber-card: #14171f;
+      --cyber-neon-green: #39ff14;
+      --cyber-neon-blue: #00d4ff;
+      --cyber-neon-pink: #ff007f;
+      --cyber-warning: #ffaa00;
+      --cyber-text: #e2e8f0;
+      --cyber-border: #2d3748;
+    }
+
+    * { box-sizing: border-box; font-family: 'PingFang TC', "Microsoft JhengHei", sans-serif; }
+    body { background-color: var(--cyber-bg); color: var(--cyber-text); margin: 0; padding: 20px; }
+
+    .btn {
+      background: #ffffff; color: #000000; border: 2px solid #000000; padding: 8px 16px;
+      font-weight: 900; cursor: pointer; box-shadow: 3px 3px 0px rgba(255,255,255,0.1);
+      transition: all 0.1s ease; outline: none;
+    }
+    .btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0px var(--cyber-neon-green); }
+    .btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px black; }
+    .btn:disabled { background: #4a5568 !important; color: #a0aec0 !important; cursor: not-allowed; box-shadow: none !important; transform: none !important; }
+    
+    .btn-next { background: var(--cyber-neon-green) !important; color: #000000 !important; }
+    .btn-danger { background: var(--cyber-neon-pink) !important; color: #ffffff !important; }
+    .btn-outline { background: transparent !important; color: var(--cyber-text) !important; border-color: var(--cyber-border) !important; }
+    .btn-outline.active-tab { border-color: var(--cyber-neon-green) !important; color: var(--cyber-neon-green) !important; background: #1c2230 !important; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-weight: 900; margin-bottom: 6px; font-size: 14px; color: var(--cyber-neon-green); }
+    .form-control { width: 100%; padding: 10px; border: 2px solid var(--cyber-border); background: #1a202c; color: #fff; font-weight: bold; }
+    .form-control:focus { border-color: var(--cyber-neon-green); outline: none; }
+
+    #auth-block {
+      max-width: 450px; margin: 100px auto; background: var(--cyber-card); 
+      border: 3px solid #000; padding: 40px; box-shadow: 10px 10px 0px #000;
+    }
+
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 4px solid #000; padding-bottom: 15px; margin-bottom: 20px;
+    }
+    header h1 { margin: 0; font-weight: 900; font-size: 24px; letter-spacing: 1px; }
+
+    .tab-nav { display: flex; gap: 10px; margin-bottom: 25px; }
+    .tab-nav button { flex: 1; font-size: 16px; padding: 14px; font-weight: 900; }
+
+    .workspace { display: flex; gap: 20px; min-height: 650px; align-items: flex-start; }
+    .pool-sidebar { width: 30%; background: var(--cyber-card); border: 2px solid #000; padding: 15px; max-height: 750px; overflow-y: auto; }
+    .grid-canvas { width: 70%; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; align-content: flex-start; }
+
+    .pool-item { background: #1e2330; padding: 12px; margin-bottom: 8px; border-left: 4px solid #4a5568; transition: all 0.1s; }
+    .pool-item:hover { border-left-color: #fff; background: #2d3748; transform: translateX(2px); }
+    .status-tag { display: inline-block; font-size: 11px; padding: 1px 5px; font-weight: bold; background: #2d3748; color: #cbd5e0; margin-left: 4px; border-radius: 2px; }
+    
+    .item-card { background: var(--cyber-card); border: 2px solid #000; padding: 15px; display: flex; flex-direction: column; min-height: 180px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px dashed #2d3748; padding-bottom: 6px; }
+    
+    .active-group { border-color: var(--cyber-neon-green) !important; box-shadow: 0 0 12px rgba(57,255,20,0.2); }
+    .active-room { border-color: var(--cyber-neon-blue) !important; box-shadow: 0 0 12px rgba(0,212,255,0.2); }
+
+    .member-row { display: flex; justify-content: space-between; align-items: center; background: #1a202c; padding: 6px 10px; margin-bottom: 6px; font-size: 13px; }
+
+    .role-container { display: flex; width: 100%; gap: 20px; }
+    .role-menu { width: 25%; background: var(--cyber-card); border: 2px solid #000; max-height: 700px; overflow-y: auto; padding: 10px; }
+    .role-menu-item { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 12px; text-align: left; background: #1a202c; border: 1px solid #2d3748; margin-bottom: 6px; color: #fff; font-weight: bold; cursor: pointer; }
+    .role-menu-item:hover { background: #2d3748; }
+    .role-menu-item.active-menu-item { border-left: 5px solid var(--cyber-neon-green); background: #222a3a; }
+    .role-content-view { width: 75%; background: var(--cyber-card); border: 2px solid #000; padding: 20px; min-height: 500px; }
+
+    .floating-save-bar {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      width: 90%; max-width: 850px; background: var(--cyber-warning); color: #000000;
+      border: 3px solid #000; padding: 15px 25px; display: flex; justify-content: space-between;
+      align-items: center; font-weight: 900; box-shadow: 6px 6px 0px #000; z-index: 9999;
+    }
+    .hidden { display: none !important; }
+    
+    @keyframes bar-shake {
+      0%, 100% { transform: translate(-50%, 0); }
+      25% { transform: translate(-51%, -2px); }
+      75% { transform: translate(-49%, 2px); }
+    }
+    .shake-alert { animation: bar-shake 0.15s ease-in-out 3; border-color: var(--cyber-neon-pink) !important; }
+
+    .pagination-bar { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; width: 100%; grid-column: 1 / -1; }
+    .filter-tabs { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+
+    .clue-hint { font-size: 11px; color: var(--cyber-warning); background: rgba(255,170,0,0.1); padding: 2px 6px; border: 1px solid rgba(255,170,0,0.2); border-radius: 3px; display: inline-block; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+  <div id="auth-block">
+    <h2 style="margin-top:0; font-weight:900; text-align:center; color:var(--cyber-neon-green)">🔒 營隊編組編寢系統登入</h2>
+    <p style="text-align:center; font-size:12px; color:#718096; margin-bottom:25px;">（請輸入行政人員帳號與加密密碼）</p>
+    <div class="form-group">
+      <label>行政管理帳號 (Username)</label>
+      <input type="text" id="adm_account" class="form-control" placeholder="輸入行政帳號">
+    </div>
+    <div class="form-group">
+      <label>安全管理密碼 (Password)</label>
+      <input type="password" id="adm_password" class="form-control" placeholder="輸入密碼">
+    </div>
+    <button class="btn btn-next" style="width:100%; margin-top:15px; font-size:16px;" onclick="handleAdminAuth()">驗證憑證並同步名冊</button>
+  </div>
+
+  <div id="admin-dashboard" class="hidden">
+    <header>
+      <h1>⚡ 營隊編組編寢生活行政大後台</h1>
+      <div style="display:flex; align-items:center; gap:15px;">
+        <span style="font-weight:900; color:var(--cyber-neon-green); font-size:14px;">🛡️ Token 權限已掛載</span>
+        <button class="btn" style="padding:6px 12px; font-size:12px;" onclick="loadAllCampData()">🔄 同步雲端最新 Sheets</button>
+      </div>
+    </header>
+
+    <div class="tab-nav">
+      <button id="tab-btn-group" class="btn btn-outline active-tab" onclick="switchTab('group')">⛺ 1. 編組調整分頁</button>
+      <button id="tab-btn-dorm" class="btn btn-outline" onclick="switchTab('dorm')">🛏️ 2. 編寢作業分頁</button>
+      <button id="tab-btn-role" class="btn btn-outline" onclick="switchTab('role')">🛡️ 3. 隊輔管理分頁</button>
+    </div>
+
+    <div id="tab-content-group" class="workspace">
+      <div class="pool-sidebar">
+        <h3 style="margin-top:0; font-weight:900;">待分配組別學員</h3>
+        <div style="margin-bottom:12px; display:flex; flex-direction:column; gap:8px;">
+          <button class="btn btn-next" style="width:100%; font-size:12px; padding:6px;" onclick="executeSpeedyGroup()">⚡ 依團報線索一鍵歸組 (欄21)</button>
+          <input type="text" id="group-search-input" class="form-control" style="padding:6px; font-size:12px;" placeholder="搜尋學員姓名/教會/預組..." oninput="renderGroupTab()">
+        </div>
+        <div id="group-pool-container">⏳ 載入中...</div>
+      </div>
+      <div style="width:70%;">
+        <div style="display:flex; justify-content:between; align-items:center; margin-bottom:15px; width:100%;">
+          <div style="flex-grow:1; display:flex; gap:10px; align-items:center;">
+            <button class="btn btn-next" onclick="addNewVirtualGroup()">➕ 新增空小組</button>
+            <input type="text" id="canvas-group-filter" class="form-control" style="max-width:200px; padding:6px;" placeholder="快搜篩選小組..." oninput="g_currentPage=1; renderGroupTab();">
+          </div>
+          <span id="group-focus-banner" style="font-weight:900; color:var(--cyber-neon-green); font-size:13px;">👉 請點選右側小組，再點左側名單加入</span>
+        </div>
+        <div id="group-grid-canvas" class="grid-canvas"></div>
+        <div id="group-pagination" class="pagination-bar"></div>
+      </div>
+    </div>
+    <div id="save-bar-group" class="floating-save-bar hidden">
+      <div>⚠️ 偵測到小組或組名有局部變動，請記得點擊右側儲存同步至雲端！</div>
+      <button class="btn btn-danger" onclick="commitDeltaChangesToServer(this)">💾 確定儲存小組分配</button>
+    </div>
+
+    <div id="tab-content-dorm" class="workspace hidden">
+      <div class="pool-sidebar">
+        <h3 style="margin-top:0; font-weight:900;">待分配床位學員</h3>
+        <div style="margin-bottom:12px; display:flex; flex-direction:column; gap:8px;">
+          <button class="btn btn-next" style="width:100%; font-size:12px; padding:6px;" onclick="executeSpeedyDorm()">⚡ 依團報線索一鍵歸寢 (欄27)</button>
+          <input type="text" id="dorm-search-input" class="form-control" style="padding:6px; font-size:12px;" placeholder="搜尋學員姓名/性別/原房..." oninput="renderDormTab()">
+        </div>
+        <div id="dorm-pool-container">⏳ 載入中...</div>
+      </div>
+      <div style="width:70%;">
+        <div class="filter-tabs" id="dorm-region-tabs"></div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <button class="btn btn-next" onclick="addNewVirtualRoom()">➕ 新增空房間</button>
+          <span id="dorm-focus-banner" style="font-weight:900; color:var(--cyber-neon-blue); font-size:13px;">👉 請點選右側房間，再點左側名單入住</span>
+        </div>
+        <div id="room-grid-canvas" class="grid-canvas"></div>
+      </div>
+    </div>
+    <div id="save-bar-dorm" class="floating-save-bar hidden">
+      <div>⚠️ 偵測到寢室或房號有局部變動，請記得點擊右側儲存同步至雲端！</div>
+      <button class="btn btn-danger" onclick="commitDeltaChangesToServer(this)">💾 確定儲存寢室分配</button>
+    </div>
+
+    <div id="tab-content-role" class="workspace hidden" style="display:none;">
+      <div class="role-container">
+        <div class="role-menu">
+          <div style="padding:5px; margin-bottom:10px; display:flex; flex-direction:column; gap:5px;">
+            <button class="btn btn-next" style="font-size:11px; padding:5px 0;" onclick="executeSpeedyRoleTransfer()">⚡ 依團報線索一鍵轉正隊輔 (欄22)</button>
+            <input type="text" id="role-group-search" class="form-control" style="padding:4px; font-size:11px;" placeholder="過濾篩選組別..." oninput="renderRoleTab()">
+          </div>
+          <div id="role-group-list-menu"></div>
+        </div>
+        <div class="role-content-view">
+          <div id="role-view-header" style="border-bottom:2px solid var(--cyber-border); padding-bottom:10px; margin-bottom:15px;">
+            <h3 id="role-selected-group-title" style="margin:0; font-weight:900; color:var(--cyber-neon-green)">👈 請選擇左側小組查看隊輔配額</h3>
+          </div>
+          <div id="role-members-table-body">
+            <p style="color:#718096; font-style:italic;">請從左側點選一組來進行正/副隊輔名額控管。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="save-bar-role" class="floating-save-bar hidden">
+      <div>⚠️ 偵測到隊輔職稱異動，請記得點擊右側儲存同步至雲端！</div>
+      <button class="btn btn-danger" onclick="commitDeltaChangesToServer(this)">💾 確定儲存隊輔職稱</button>
+    </div>
+  </div>
+
+  <script>
+    // 📌 請將部署後的 Google Apps Script Web App 網址貼於此處
+    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbzQWMege-IG3bZz1AuKNdb2eKqEem1a_ae2R2vcgpOy7QRuA9A5ZYkvy89oMOC3h0HLDQ/exec";
+
+    // 🔒 儲存當次登入核發的動態 Token 與帳號資訊
+    let sessionUser = { username: "", token: "", realName: "" };
+    
+    let rawCampList = [];
+    let isDataDirty = false;
+    let deltaChangesMap = new Map(); 
+
+    let g_currentPage = 1;
+    const g_pageSize = 12; 
+    let activeGroupId = null;
+    let v_createdGroups = [];
+
+    // 🛏️ 虛擬住宿區域對照字典
+    const DORM_REGIONS_DICTIONARY = {
+      "信實樓 1F": ["101", "102", "103", "104", "105", "106", "107", "108"],
+      "信實樓 2F": ["201", "202", "203", "204", "205", "206", "207", "208"],
+      "恩慈樓 A棟": ["A01", "A02", "A03", "A04", "A05"],
+      "大通鋪特區": ["通鋪A", "通鋪B", "隊輔大通艙"]
+    };
+    let currentSelectedRegion = "信實樓 1F";
+    let activeRoomNo = null;
+    let v_createdRooms = [];
+    let activeRoleGroupId = null;
+
+    // 🛡️ 核心：每次請求都自動附加 Token 驗證
+    async function requestBackendApi(action, payloadPayload) {
+      const bodyData = {
+        action: action,
+        payload: {
+          username: sessionUser.username,
+          token: sessionUser.token,
+          ...payloadPayload
+        }
+      };
+      const res = await fetch(DEPLOYED_GAS_URL, {
+        method: "POST",
+        body: JSON.stringify(bodyData)
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+      return data.data;
+    }
+
+    // 🔒 處理行政後台登入
+    async function handleAdminAuth() {
+      const uInput = document.getElementById("adm_account").value.trim();
+      const pInput = document.getElementById("adm_password").value.trim();
+
+      if (!uInput || !pInput) {
+        alert("❌ 請輸入管理帳號與密碼！");
+        return;
+      }
+
+      const loginBtn = document.querySelector("#auth-block button");
+      loginBtn.innerText = "⏳ 安全驗證與權限掛載中...";
+      loginBtn.disabled = true;
+
+      try {
+        const res = await fetch(DEPLOYED_GAS_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "verifyAdmin",
+            payload: { username: uInput, password: pInput }
+          })
+        });
+        const result = await res.json();
+        
+        if (!result.success) throw new Error(result.message);
+
+        // 登入獲准，記入動態 Token
+        sessionUser.username = uInput;
+        sessionUser.token = result.data.token;
+        sessionUser.realName = result.data.userName;
+
+        document.getElementById("auth-block").classList.add('hidden');
+        document.getElementById("admin-dashboard").classList.remove('hidden');
+        
+        document.querySelector("header h1").innerText = `⚡ 歡迎行政：${sessionUser.realName} ｜ 營隊行政生活大後台`;
+        await loadAllCampData();
+      } catch (err) {
+        alert(err.message);
+        loginBtn.innerText = "驗證憑證並同步名冊";
+        loginBtn.disabled = false;
+      }
+    }
+
+    async function loadAllCampData() {
+      try {
+        document.getElementById("group-pool-container").innerHTML = "⏳ 同步雲端名冊中...";
+        document.getElementById("dorm-pool-container").innerHTML = "⏳ 同步雲端名冊中...";
+        
+        const data = await requestBackendApi("getCampFullData", {});
+        rawCampList = Array.isArray(data) ? data : [];
+        
+        deltaChangesMap.clear();
+        v_createdGroups = [];
+        v_createdRooms = [];
+        isDataDirty = false;
+        hideAllSaveBars();
+
+        renderGroupTab();
+        renderDormTab();
+        renderRoleTab();
+      } catch (err) {
+        alert("❌ 名冊抓取失敗：" + err.message);
+      }
+    }
+
+    function hideAllSaveBars() {
+      ['group', 'dorm', 'role'].forEach(k => document.getElementById(`save-bar-${k}`).classList.add('hidden'));
+    }
+
+    function markDataAsDirty(type) {
+      isDataDirty = true;
+      hideAllSaveBars();
+      const targetBar = document.getElementById(`save-bar-${type}`);
+      if (targetBar) targetBar.classList.remove('hidden');
+    }
+
+    function switchTab(targetKey) {
+      if (isDataDirty) {
+        let activeKey = 'group';
+        if (!document.getElementById('tab-content-dorm').classList.contains('hidden')) activeKey = 'dorm';
+        if (document.getElementById('tab-content-role').style.display === 'block') activeKey = 'role';
+
+        alert("⚠️ 偵測到您在目前分頁有異動尚未儲存！\n請先點擊底部的「確定儲存」或重整網頁放棄變更，才能切換分頁。");
+        const activeBar = document.getElementById(`save-bar-${activeKey}`);
+        if (activeBar) {
+          activeBar.classList.add('shake-alert');
+          setTimeout(() => activeBar.classList.remove('shake-alert'), 400);
+        }
+        return;
+      }
+
+      ['group', 'dorm', 'role'].forEach(k => {
+        const pane = document.getElementById(`tab-content-${k}`);
+        if(k==='role') { pane.style.display = 'none'; } else { pane.classList.add('hidden'); }
+        document.getElementById(`tab-btn-${k}`).classList.remove('active-tab');
+      });
+
+      const targetPane = document.getElementById(`tab-content-${targetKey}`);
+      if(targetKey==='role') { targetPane.style.display = 'block'; } else { targetPane.classList.remove('hidden'); }
+      document.getElementById(`tab-btn-${targetKey}`).classList.add('active-tab');
+
+      if (targetKey === 'group') renderGroupTab();
+      if (targetKey === 'dorm') renderDormTab();
+      if (targetKey === 'role') renderRoleTab();
+    }
+
+    // ⛺ 功能模組一：編組調整主要邏輯
+    function renderGroupTab() {
+      const poolBox = document.getElementById("group-pool-container");
+      const canvasBox = document.getElementById("group-grid-canvas");
+      const searchKeyword = document.getElementById("group-search-input").value.trim().toLowerCase();
+      const canvasFilter = document.getElementById("canvas-group-filter").value.trim().toLowerCase();
+
+      const localGroupMap = {};
+      const unassignedPool = [];
+
+      rawCampList.forEach(m => {
+        const delta = deltaChangesMap.get(m.row);
+        const finalGroup = (delta && delta.group !== undefined) ? delta.group : m.group;
+
+        if (finalGroup && finalGroup.trim() !== "") {
+          if (!localGroupMap[finalGroup]) localGroupMap[finalGroup] = [];
+          localGroupMap[finalGroup].push(m);
+        } else {
+          if (searchKeyword) {
+            const match = m.name.toLowerCase().includes(searchKeyword) || m.origGroupClue.toLowerCase().includes(searchKeyword);
+            if (match) unassignedPool.push(m);
+          } else {
+            unassignedPool.push(m);
+          }
+        }
+      });
+
+      poolBox.innerHTML = unassignedPool.map(m => {
+        const hint = m.origGroupClue ? `<span class="status-tag">預組:${m.origGroupClue}</span>` : "";
+        return `
+          <div class="pool-item" onclick="assignToActiveGroup(${m.row})" style="cursor:pointer;">
+            <div style="font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
+              <span>${m.name} (${m.gender})</span> ${hint}
+            </div>
+          </div>`;
+      }).join('') || '<div style="color:#4a5568;">(無符合待分配學員)</div>';
+
+      let groupNameList = Array.from(new Set([...Object.keys(localGroupMap), ...v_createdGroups])).sort();
+      if (canvasFilter) groupNameList = groupNameList.filter(g => g.toLowerCase().includes(canvasFilter));
+
+      const totalItems = groupNameList.length;
+      const totalPages = Math.ceil(totalItems / g_pageSize) || 1;
+      if (g_currentPage > totalPages) g_currentPage = totalPages;
+
+      const startIndex = (g_currentPage - 1) * g_pageSize;
+      const paginatedGroups = groupNameList.slice(startIndex, startIndex + g_pageSize);
+
+      canvasBox.innerHTML = paginatedGroups.map(gName => {
+        const ms = localGroupMap[gName] || [];
+        const isActive = (activeGroupId === gName);
+        return `
+          <div class="item-card ${isActive ? 'active-group' : ''}" onclick="selectActiveGroup('${gName}')">
+            <div class="card-header">
+              <input type="text" value="${gName}" onblur="renameVirtualGroup('${gName}', this.value)" style="font-weight:900; color:#fff; border:none; background:transparent; width:75%; outline:none;" onclick="event.stopPropagation()">
+              <span class="status-tag" style="background:var(--cyber-neon-green); color:#000;">${ms.length}人</span>
+            </div>
+            <div style="flex-grow:1;">
+              ${ms.length > 0 ? ms.map(m => `
+                <div class="member-row">
+                  <span>• ${m.name}</span>
+                  <span style="color:var(--cyber-neon-pink); cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); removeStudentFromGroup(${m.row})">×</span>
+                </div>`).join('') : '<div style="color:#4a5568;">(空小組)</div>'}
+            </div>
+          </div>`;
+      }).join('');
+
+      const pBar = document.getElementById("group-pagination");
+      pBar.innerHTML = `
+        <button class="btn btn-outline" ${g_currentPage===1?'disabled':''} onclick="g_currentPage--; renderGroupTab();">◀ 上一頁</button>
+        <span style="font-weight:bold; font-size:14px;">第 ${g_currentPage} / ${totalPages} 頁 (總共 ${totalItems} 組)</span>
+        <button class="btn btn-outline" ${g_currentPage===totalPages?'disabled':''} onclick="g_currentPage++; renderGroupTab();">下一頁 ▶</button>
+      `;
+    }
+
+    function selectActiveGroup(gName) { activeGroupId = gName; renderGroupTab(); document.getElementById("group-focus-banner").innerText = `👉 目標組別：【${gName}】`; }
+    function addNewVirtualGroup() { const gName = `新小組_${Date.now().toString().slice(-4)}`; v_createdGroups.unshift(gName); selectActiveGroup(gName); markDataAsDirty('group'); }
+    function assignToActiveGroup(rowId) { if (!activeGroupId) { alert("請先選取右側「小組卡片」！"); return; } const old = deltaChangesMap.get(rowId) || {}; deltaChangesMap.set(rowId, { ...old, row: rowId, group: activeGroupId, teamRole: "" }); markDataAsDirty('group'); renderGroupTab(); }
+    function removeStudentFromGroup(rowId) { const old = deltaChangesMap.get(rowId) || {}; deltaChangesMap.set(rowId, { ...old, row: rowId, group: "", teamRole: "" }); markDataAsDirty('group'); renderGroupTab(); }
+
+    function renameVirtualGroup(oldName, newName) {
+      newName = newName.trim(); if (!newName || oldName === newName) return;
+      rawCampList.forEach(m => {
+        const d = deltaChangesMap.get(m.row);
+        if (((d && d.group !== undefined) ? d.group : m.group) === oldName) {
+          deltaChangesMap.set(m.row, { ...(deltaChangesMap.get(m.row) || {}), row: m.row, group: newName });
+        }
+      });
+      const idx = v_createdGroups.indexOf(oldName); if (idx !== -1) v_createdGroups[idx] = newName;
+      if (activeGroupId === oldName) activeGroupId = newName;
+      markDataAsDirty('group'); renderGroupTab();
+    }
+
+    function executeSpeedyGroup() {
+      let count = 0;
+      rawCampList.forEach(m => {
+        const d = deltaChangesMap.get(m.row);
+        const currentG = (d && d.group !== undefined) ? d.group : m.group;
+        if ((!currentG || currentG.trim() === "") && m.origGroupClue) {
+          deltaChangesMap.set(m.row, { ...(d || {}), row: m.row, group: m.origGroupClue, teamRole: "" });
+          if (!v_createdGroups.includes(m.origGroupClue)) v_createdGroups.push(m.origGroupClue);
+          count++;
+        }
+      });
+      if (count > 0) { markDataAsDirty('group'); renderGroupTab(); alert(`⚡ 自動排入 ${count} 位學員！`); } else { alert("無符合線索。"); }
+    }
+
+    // 🛏️ 功能模組二：編寢作業主要邏輯
+    function renderDormTab() {
+      const rTabs = document.getElementById("dorm-region-tabs");
+      const poolBox = document.getElementById("dorm-pool-container");
+      const canvasBox = document.getElementById("room-grid-canvas");
+      const searchKeyword = document.getElementById("dorm-search-input").value.trim().toLowerCase();
+
+      const regionsList = Object.keys(DORM_REGIONS_DICTIONARY);
+      rTabs.innerHTML = regionsList.map(rKey => `
+        <button class="btn btn-outline ${currentSelectedRegion===rKey?'active-tab':''}" onclick="currentSelectedRegion='${rKey}'; renderDormTab();">${rKey}</button>
+      `).join('') + `<button class="btn btn-outline ${currentSelectedRegion==='__UNCLASSED__'?'active-tab':''}" onclick="currentSelectedRegion='__UNCLASSED__'; renderDormTab();">未歸類房間 ⚠️</button>`;
+
+      const localRoomMap = {}; const unassignedPool = [];
+      rawCampList.forEach(m => {
+        const delta = deltaChangesMap.get(m.row);
+        const finalRoom = (delta && delta.room !== undefined) ? delta.room : m.room;
+        if (finalRoom && finalRoom.trim() !== "") {
+          if (!localRoomMap[finalRoom]) localRoomMap[finalRoom] = []; localRoomMap[finalRoom].push(m);
+        } else {
+          if (searchKeyword) { if (m.name.toLowerCase().includes(searchKeyword) || m.gender.includes(searchKeyword)) unassignedPool.push(m); } else { unassignedPool.push(m); }
+        }
+      });
+
+      poolBox.innerHTML = ['男', '女'].map(g => {
+        const subList = unassignedPool.filter(x => x.gender === g);
+        return `<div style="font-weight:900; font-size:12px; color:#cbd5e0; margin-top:8px; border-bottom:1px solid #2d3748;">${g}生池 (${subList.length}人)</div>` + subList.map(m => `
+            <div class="pool-item" onclick="assignToActiveRoom(${m.row}, '${m.gender}')" style="cursor:pointer; border-left-color:${g==='男'?'var(--cyber-neon-blue)':'var(--cyber-neon-pink)'}">
+              <div style="display:flex; justify-content:between; align-items:center;"><span>${m.name}</span>${m.origDormClue ? `<span class="status-tag">原房:${m.origDormClue}</span>`:''}</div>
+            </div>`).join('');
+      }).join('');
+
+      let activeRoomList = [];
+      if (currentSelectedRegion === '__UNCLASSED__') {
+        const classedRooms = Object.values(DORM_REGIONS_DICTIONARY).flat();
+        const activeRooms = Array.from(new Set([...Object.keys(localRoomMap), ...v_createdRooms]));
+        activeRoomList = activeRooms.filter(r => !classedRooms.includes(r));
+      } else {
+        const regionDefined = DORM_REGIONS_DICTIONARY[currentSelectedRegion] || [];
+        activeRoomList = regionDefined.concat(v_createdRooms.filter(r => !Object.values(DORM_REGIONS_DICTIONARY).flat().includes(r) && !activeRoomList.includes(r)));
+        activeRoomList = Array.from(new Set(activeRoomList)).sort();
+      }
+
+      canvasBox.innerHTML = activeRoomList.map(rNo => {
+        const ms = localRoomMap[rNo] || []; const isActive = (activeRoomNo === rNo);
+        let borderBarColor = "#4a5568"; let roomGender = "空房";
+        if (ms.length > 0) { roomGender = ms[0].gender; borderBarColor = roomGender === '男' ? 'var(--cyber-neon-blue)' : 'var(--cyber-neon-pink)'; }
+        const isOverLimit = ms.length > 4;
+        return `
+          <div class="item-card ${isActive ? 'active-room' : ''}" onclick="selectActiveRoom('${rNo}')" style="border-top: 5px solid ${borderBarColor};">
+            <div class="card-header">
+              <input type="text" value="${rNo}" onblur="renameVirtualRoom('${rNo}', this.value)" style="font-weight:900; color:#fff; border:none; background:transparent; width:70%; outline:none;" onclick="event.stopPropagation()">
+              <span class="status-tag" style="${isOverLimit?'background:var(--cyber-warning); color:#000;':''}">${ms.length} 人</span>
+            </div>
+            <div style="flex-grow:1;">
+              ${ms.length > 0 ? ms.map(m => `
+                <div class="member-row">
+                  <span>• ${m.name} <small style="color:#718096">(${m.group || '無組'})</small></span>
+                  <span style="color:var(--cyber-neon-pink); cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); removeStudentFromRoom(${m.row})">×</span>
+                </div>`).join('') : `<div style="color:#4a5568;">(空房 - ${roomGender})</div>`}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function selectActiveRoom(rNo) { activeRoomNo = rNo; renderDormTab(); document.getElementById("dorm-focus-banner").innerText = `👉 目標寢室：【${rNo}】`; }
+    function addNewVirtualRoom() { const rNo = `R_${Date.now().toString().slice(-4)}`; v_createdRooms.unshift(rNo); selectActiveRoom(rNo); markDataAsDirty('dorm'); }
+    
+    function assignToActiveRoom(rowId, gender) {
+      if (!activeRoomNo) { alert("請先選取右側「房間卡片」！"); return; }
+      const residents = rawCampList.filter(m => {
+        const d = deltaChangesMap.get(m.row);
+        return ((d && d.room !== undefined) ? d.room : m.room) === activeRoomNo;
+      });
+      if (residents.length > 0 && residents[0].gender !== gender) { alert(`❌ 性別硬攔截！【${residents[0].gender}生房】男生女生不得混編！`); return; }
+      const old = deltaChangesMap.get(rowId) || {}; deltaChangesMap.set(rowId, { ...old, row: rowId, room: activeRoomNo });
+      markDataAsDirty('dorm'); renderDormTab();
+    }
+    function removeStudentFromRoom(rowId) { const old = deltaChangesMap.get(rowId) || {}; deltaChangesMap.set(rowId, { ...old, row: rowId, room: "" }); markDataAsDirty('dorm'); renderDormTab(); }
+
+    function renameVirtualRoom(oldNo, newNo) {
+      newNo = newNo.trim(); if (!newNo || oldNo === newNo) return;
+      rawCampList.forEach(m => {
+        const d = deltaChangesMap.get(m.row);
+        if (((d && d.room !== undefined) ? d.room : m.room) === oldNo) { deltaChangesMap.set(m.row, { ...(deltaChangesMap.get(m.row) || {}), row: m.row, room: newNo }); }
+      });
+      const idx = v_createdRooms.indexOf(oldNo); if (idx !== -1) v_createdRooms[idx] = newNo;
+      if (activeRoomNo === oldNo) activeRoomNo = newNo;
+      markDataAsDirty('dorm'); renderDormTab();
+    }
+
+    function executeSpeedyDorm() {
+      let count = 0;
+      rawCampList.forEach(m => {
+        const d = deltaChangesMap.get(m.row); const currentR = (d && d.room !== undefined) ? d.room : m.room;
+        if ((!currentR || currentR.trim() === "") && m.origDormClue) { deltaChangesMap.set(m.row, { ...(d || {}), row: m.row, room: m.origDormClue }); count++; }
+      });
+      if (count > 0) { markDataAsDirty('dorm'); renderDormTab(); alert(`⚡ 自動分配完成 ${count} 床位！`); } else { alert("無符合線索。"); }
+    }
+
+    // 🛡️ 功能模組三：隊輔管理
+    function renderRoleTab() {
+      const menuBox = document.getElementById("role-group-list-menu");
+      const filterKey = document.getElementById("role-group-search").value.trim().toLowerCase();
+
+      const localGroupClusters = {};
+      rawCampList.forEach(m => {
+        const d = deltaChangesMap.get(m.row); const finalGroup = (d && d.group !== undefined) ? d.group : m.group;
+        if (finalGroup && finalGroup.trim() !== "") {
+          if (!localGroupClusters[finalGroup]) localGroupClusters[finalGroup] = []; localGroupClusters[finalGroup].push(m);
+        }
+      });
+
+      let groupKeys = Object.keys(localGroupClusters).sort();
+      if (filterKey) groupKeys = groupKeys.filter(k => k.toLowerCase().includes(filterKey));
+
+      menuBox.innerHTML = groupKeys.map(gKey => {
+        const members = localGroupClusters[gKey];
+        const hasUnconfirmedClue = members.some(m => {
+          const d = deltaChangesMap.get(m.row); const fRole = (d && d.teamRole !== undefined) ? d.teamRole : m.teamRole;
+          return m.origRoleClue && (!fRole || fRole === '');
+        });
+        return `<div class="role-menu-item ${activeRoleGroupId===gKey?'active-menu-item':''}" onclick="selectRoleGroup('${gKey}')"><span>${gKey} <small>(${members.length}人)</small></span>${hasUnconfirmedClue?'<span style="color:var(--cyber-warning);">💡</span>':''}</div>`;
+      }).join('') || '<div style="color:#4a5568; font-size:12px; text-align:center; padding:20px;">(無有效小組)</div>';
+
+      renderRoleContentDetail(localGroupClusters[activeRoleGroupId] || []);
+    }
+
+    function selectRoleGroup(gKey) { activeRoleGroupId = gKey; document.getElementById("role-selected-group-title").innerText = `⛺ 當前小組：【${gKey}】職稱確認`; renderRoleTab(); }
+
+    function renderRoleContentDetail(membersList) {
+      const container = document.getElementById("role-members-table-body");
+      if (!activeRoleGroupId) { container.innerHTML = `<p style="color:#718096; font-style:italic;">請從左側點選一組來進行配額管理。</p>`; return; }
+      if (membersList.length === 0) { container.innerHTML = `<p style="color:#718096; font-style:italic;">本組尚無成員。</p>`; return; }
+
+      let html = `<table style="width:100%; border-collapse: collapse; text-align: left;"><thead><tr style="border-bottom: 2px solid var(--cyber-border); color:#cbd5e0; font-size:13px;"><th style="padding:10px 5px;">學員姓名</th><th style="padding:10px 5px;">性別</th><th style="padding:10px 5px;">📋 團報窗口預期職稱 (欄22)</th><th style="padding:10px 5px; text-align:right;">⚡ 正式設定 (欄38)</th></tr></thead><tbody>`;
+      html += membersList.map(m => {
+        const d = deltaChangesMap.get(m.row); const fRole = (d && d.teamRole !== undefined) ? d.teamRole : (m.teamRole || "");
+        const isChief = fRole === '正隊輔'; const isAssistant = fRole === '副隊輔'; const isStudent = !fRole || fRole === '';
+        return `
+          <tr style="border-bottom: 1px solid #1a202c; font-size:14px;">
+            <td style="padding:12px 5px; font-weight:bold;">${m.name}</td><td style="padding:12px 5px;">${m.gender}</td>
+            <td style="padding:12px 5px;">${m.origRoleClue ? `<span class="clue-hint">⚓ 團報預定：${m.origRoleClue}</span>` : '-'}</td>
+            <td style="padding:12px 5px; text-align:right;">
+              <button onclick="toggleRoleTitle(${m.row}, '正隊輔')" class="btn" style="padding:3px 9px; font-size:11px; background:${isChief ? 'var(--cyber-warning)' : '#2d3748'}; color:${isChief?'#000':'#fff'}">正</button>
+              <button onclick="toggleRoleTitle(${m.row}, '副隊輔')" class="btn" style="padding:3px 9px; font-size:11px; background:${isAssistant ? 'var(--cyber-neon-blue)' : '#2d3748'}; color:${isAssistant?'#000':'#fff'}">副</button>
+              <button onclick="toggleRoleTitle(${m.row}, '')" class="btn" style="padding:3px 9px; font-size:11px; background:${isStudent ? '#0b0c10' : '#2d3748'}; color:${isStudent ? '#4a5568' : '#fff'}">員</button>
+            </td>
+          </tr>`;
+      }).join('');
+      container.innerHTML = html + `</tbody></table>`;
+    }
+
+    function toggleRoleTitle(rowId, targetRole) {
+      const student = rawCampList.find(x => x.row === rowId); if (!student) return;
+      const dSelf = deltaChangesMap.get(rowId); const groupOfStudent = (dSelf && dSelf.group !== undefined) ? dSelf.group : student.group;
+      const currentRole = (dSelf && dSelf.teamRole !== undefined) ? dSelf.teamRole : (student.teamRole || "");
+      if (currentRole === targetRole) return;
+
+      if (targetRole !== "") {
+        const countExistingRoles = (roleName) => {
+          return rawCampList.filter(x => {
+            const d = deltaChangesMap.get(x.row);
+            return ((d && d.group !== undefined) ? d.group : x.group) === groupOfStudent && ((d && d.teamRole !== undefined) ? d.teamRole : x.teamRole) === roleName;
+          }).length;
+        };
+        if (targetRole === '正隊輔' && countExistingRoles('正隊輔') >= 1) { alert(`⚠️ 配額超額！【${groupOfStudent}】已存在 1 名正隊輔！`); return; }
+        if (targetRole === '副隊輔' && countExistingRoles('副隊輔') >= 2) { alert(`⚠️ 配額超額！【${groupOfStudent}】副隊輔已達 2 名上限！`); return; }
+      }
+      deltaChangesMap.set(rowId, { ...(deltaChangesMap.get(rowId) || {}), row: rowId, teamRole: targetRole });
+      markDataAsDirty('role'); renderRoleTab();
+    }
+
+    function executeSpeedyRoleTransfer() {
+      let count = 0; let blockedCount = 0;
+      rawCampList.forEach(m => {
+        const d = deltaChangesMap.get(m.row); const finalG = (d && d.group !== undefined) ? d.group : m.group; const finalR = (d && d.teamRole !== undefined) ? d.teamRole : m.teamRole;
+        if (finalG && (!finalR || finalR === '') && m.origRoleClue) {
+          let targetRole = "";
+          if (m.origRoleClue.includes("正")) targetRole = "正隊輔"; if (m.origRoleClue.includes("副")) targetRole = "副隊輔";
+          if (targetRole !== "") {
+            const countCurrent = (rName) => rawCampList.filter(x => { const dx = deltaChangesMap.get(x.row); return ((dx && dx.group !== undefined) ? dx.group : x.group) === finalG && ((dx && dx.teamRole !== undefined) ? dx.teamRole : x.teamRole) === rName; }).length;
+            if (targetRole === "正隊輔" && countCurrent("正隊輔") >= 1) { blockedCount++; return; }
+            if (targetRole === "副隊輔" && countCurrent("副隊輔") >= 2) { blockedCount++; return; }
+            deltaChangesMap.set(m.row, { ...(d || {}), row: m.row, teamRole: targetRole }); count++;
+          }
+        }
+      });
+      if (count > 0 || blockedCount > 0) { markDataAsDirty('role'); renderRoleTab(); alert(`⚡ 一鍵確認：成功轉正 ${count} 位隊輔！${blockedCount>0?`\n⚠️ 另有 ${blockedCount} 筆因配額超限被安全攔截。`:''}`); } else { alert("無可自動轉正的隊輔。"); }
+    }
+
+    // 💾 增量（Delta）變更打包寫入
+    async function commitDeltaChangesToServer(btnElement) {
+      const updatesPayload = Array.from(deltaChangesMap.values());
+      if (updatesPayload.length === 0) { alert("無任何變更需要同步。"); return; }
+
+      if (updatesPayload.some(u => u.group !== undefined)) {
+        const inputs = document.querySelectorAll('input[onblur*="renameVirtualGroup"]');
+        const names = Array.from(inputs).map(i => i.value.trim()).filter(n => n !== "");
+        if (names.filter((item, index) => names.indexOf(item) !== index).length > 0) { alert(`❌ 同步終止！偵測到重複的小組名稱設定，請先修正。`); return; }
+      }
+
+      const btn = btnElement; const originalText = btn.innerText;
+      btn.innerText = "⏳ 增量同步至雲端中..."; btn.disabled = true;
+
+      try {
+        const msg = await requestBackendApi("batchUpdateCampData", { updates: updatesPayload });
+        alert("✅ " + msg); deltaChangesMap.clear(); isDataDirty = false; hideAllSaveBars(); await loadAllCampData();
+      } catch (err) { alert("❌ 批次寫入失敗：" + err.message); } finally { btn.innerText = originalText; btn.disabled = false; }
+    }
+
+    window.addEventListener('beforeunload', (e) => { if (isDataDirty) { e.preventDefault(); e.returnValue = ''; } });
+  </script>
+</body>
+</html>
