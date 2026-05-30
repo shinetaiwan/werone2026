@@ -331,7 +331,7 @@
 
   <script>
     // 📌 請將部署後的 Google Apps Script 網頁應用程式 URL 貼在此處
-    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbzAwQj8kt4Txuxxr5lKsy2kig3059zwWxZNX2ccgh8KeQtH4joMhYxSJEd6XdedvcOwQw/exec";
+    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycby7QM-DMhL5YMLyaV3DLqCq31jjw1lcncH-Xvuhf-fLLIWxNLn3fTQF0-WjVZWH3lk7lg/exec";
 
     // 安全憑證暫存區
     let sessionUser = { username: "", token: "", realName: "" };
@@ -494,14 +494,14 @@
     }
 
     // =========================================
-    // ⛺ 功能模組一：編組調整主要邏輯 (優化字典、窗口分群與歷史標籤)
+    // ⛺ 功能模組一：編組調整主要邏輯 (精確對齊：報名窗口分群)
     // =========================================
     function renderGroupTab() {
       const poolBox = document.getElementById("group-pool-container");
       const canvasBox = document.getElementById("group-grid-canvas");
       const searchKeyword = document.getElementById("group-search-input").value.trim().toLowerCase();
 
-      // 1. 渲染頂部「大隊切換分流導覽列」（來自固定字典）
+      // 1. 渲染頂部「大隊切換分流導覽列」
       const majorTabsContainer = document.getElementById("group-main-tabs");
       majorTabsContainer.innerHTML = Object.keys(GROUP_MAJORS_DICTIONARY).map(tabName => `
         <button class="btn btn-next ${currentSelectedGroupTab === tabName ? 'active' : ''}" 
@@ -524,6 +524,7 @@
           if (searchKeyword) {
             if (m.name.toLowerCase().includes(searchKeyword) || 
                 m.church.toLowerCase().includes(searchKeyword) || 
+                m.origWindowClue.toLowerCase().includes(searchKeyword) ||
                 m.origGroupClue.toLowerCase().includes(searchKeyword)) {
               unassignedPool.push(m);
             }
@@ -533,31 +534,30 @@
         }
       });
 
-      // 3. 🎯 訴求 2：待選池依據「報名窗口/預編組(第21欄)」進行有秩序的【分群與分塊呈現】
-      // 先將學員依照 origGroupClue 分組
+      // 3. 🎯 依據「第23欄：報名窗口」進行待選池的分群與分塊呈現
       const clusteredPool = {};
       unassignedPool.forEach(m => {
-        const clueKey = m.origGroupClue || "未註明窗口";
-        if (!clusteredPool[clueKey]) clusteredPool[clueKey] = [];
-        clusteredPool[clueKey].push(m);
+        const windowKey = m.origWindowClue || "未註明窗口";
+        if (!clusteredPool[windowKey]) clusteredPool[windowKey] = [];
+        clusteredPool[windowKey].push(m);
       });
 
       // 排序窗口名稱
-      const sortedClueKeys = Object.keys(clusteredPool).sort();
+      const sortedWindowKeys = Object.keys(clusteredPool).sort();
 
-      // 輸出左側名單池 HTML (呈現黑底白字的窗口大標，內含 姓名 + 教會 的俐落排版)
+      // 輸出左側名單池 HTML (以報名窗口為大黑框分群，顯示姓名與教會)
       if (unassignedPool.length === 0) {
         poolBox.innerHTML = '<div class="empty-placeholder" style="color:#fff;">(全體均已分組完成)</div>';
       } else {
-        poolBox.innerHTML = sortedClueKeys.map(clueKey => {
-          const studentsInClue = clusteredPool[clueKey];
+        poolBox.innerHTML = sortedWindowKeys.map(wKey => {
+          const studentsInWindow = clusteredPool[wKey];
           return `
             <div style="margin-bottom: 15px; border: 2px solid var(--shine-black); background: #222; padding: 5px;">
               <div style="color: var(--shine-lime); font-weight: 900; font-size: 13px; padding-bottom: 5px; border-bottom: 1px solid #444;">
-                📦 窗口：${clueKey} (${studentsInClue.length}人)
+                🏢 窗口：${wKey} (${studentsInWindow.length}人)
               </div>
               <div style="margin-top: 5px;">
-                ${studentsInClue.map(m => `
+                ${studentsInWindow.map(m => `
                   <div class="pool-item" onclick="assignToActiveGroup(${m.row})" style="padding: 6px 10px; margin-bottom: 4px;">
                     <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px;">
                       <span style="font-size: 15px; font-weight: 900; color: var(--shine-black);">${m.name}</span>
@@ -571,24 +571,21 @@
         }).join('');
       }
 
-      // 4. 🎯 訴求 1：根據所選大隊，決定右側畫布要顯示哪些小組卡片
+      // 4. 根據所選大隊，決定右側畫布要顯示哪些小組卡片
       let allowedGroups = [];
       if (currentSelectedGroupTab === "全部") {
-        // 全局檢視：顯示所有存在於總表或新創的小組
         allowedGroups = Array.from(new Set([...Object.keys(localGroupMap), ...v_createdGroups])).sort();
       } else if (currentSelectedGroupTab === "未歸類大隊") {
-        // 找出不屬於任何大隊字典定義的散兵小組
         const allDefinedRooms = Object.values(GROUP_MAJORS_DICTIONARY).flat();
         const allActiveGroups = Array.from(new Set([...Object.keys(localGroupMap), ...v_createdGroups]));
         allowedGroups = allActiveGroups.filter(g => !allDefinedRooms.includes(g));
       } else {
-        // 嚴格對齊字典定義的小組，並補上行政在該大隊下臨時新創的組別
         const dictionaryGroups = GROUP_MAJORS_DICTIONARY[currentSelectedGroupTab] || [];
         const dynamicCreatedInMajor = v_createdGroups.filter(g => g.startsWith(currentSelectedGroupTab));
         allowedGroups = Array.from(new Set([...dictionaryGroups, ...dynamicCreatedInMajor])).sort();
       }
 
-      // 5. 🎯 訴求 3：繪製右側小組卡片 (加入教會資訊與原預編歷史痕跡標籤)
+      // 5. 繪製右側小組卡片 (呈現姓名、教會，並貼上原預編與原窗口標籤)
       canvasBox.innerHTML = allowedGroups.map(gName => {
         const ms = localGroupMap[gName] || [];
         const isActive = (activeGroupId === gName);
@@ -609,16 +606,19 @@
                           onclick="event.stopPropagation(); removeStudentFromGroup(${m.row})">×</span>
                   </div>
                   <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                    <span class="clue-badge" style="background: var(--shine-light); font-size: 10px; color: #444; border-style: dashed;">
-                      ↩️ 原窗: ${m.origGroupClue || '無'}
+                    <span class="clue-badge" style="background: var(--shine-light); font-size: 10px; color: #333; border-style: dashed;">
+                      ↩️ 預組: ${m.origGroupClue || '無'}
+                    </span>
+                    <span class="clue-badge" style="background: var(--shine-light); font-size: 10px; color: #666; border-style: dashed;">
+                      🏢 窗: ${m.origWindowClue || '無'}
                     </span>
                   </div>
                 </div>`).join('') : '<div class="empty-placeholder">(此組尚無成員)</div>'}
             </div>
           </div>`;
-      }).join('') || '<div class="empty-placeholder" style="grid-column: 1/-1;">此大隊區段目前尚無對應小組，可點選上方「開拓空小組」建立。</div>';
+      }).join('') || '<div class="empty-placeholder" style="grid-column: 1/-1;">此大隊區段目前尚無對應小組。</div>';
     }
-
+    
     function selectActiveGroup(gName) { activeGroupId = gName; renderGroupTab(); document.getElementById("group-focus-banner").innerText = `🎯 當前鎖定目標：【${gName}】`; }
     function addNewVirtualGroup() { 
       const prefix = currentSelectedGroupTab !== "全部" && currentSelectedGroupTab !== "未編大隊" ? `${currentSelectedGroupTab}_` : "";
