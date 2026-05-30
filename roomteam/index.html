@@ -414,7 +414,7 @@
 
         document.getElementById("auth-block").classList.add('hidden');
         document.getElementById("admin-dashboard").classList.remove('hidden');
-        document.getElementById('dashboard-title').innerText = `管理人員：${realName}`;
+        document.getElementById('dashboard-title').innerText = `管理人員：${sessionUser.realName}`;
         
         await loadAllCampData();
       } catch (err) {
