@@ -331,7 +331,7 @@
 
   <script>
     // 📌 請將部署後的 Google Apps Script 網頁應用程式 URL 貼在此處
-    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbyyXeVLk3c21B4-l6ar6XAllVr_CDCsV7PhWeD7wRtSmkIrP1yZHZ5-WWbGyxHzHNQ6dQ/exec";
+    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbz-gijs782MYvwRLSFUKqPPLsUvfZAXQND_kklxVb3xLU82sGKEBDFCIQVSSE7p-5L9yw/exec";
 
     // 安全憑證暫存區
     let sessionUser = { username: "", token: "", realName: "" };
@@ -990,11 +990,11 @@
     // 💾 批次變更同步提交邏輯
     // =========================================
     // 💡 前端儲存：讀取 sessionUser 動態憑證並送出
+    // 💡 前端儲存：加入確切的 finally 解鎖機制，防範按鈕卡死
     async function commitDeltaChangesToServer(type) {
       const updatesPayload = Array.from(deltaChangesMap.values());
       if (updatesPayload.length === 0) { alert("無任何變更需要儲存。"); return; }
 
-      // 如果有更動小組名，防呆避免出現完全同名的空群組
       if (type === 'group') {
         const inputs = document.querySelectorAll('input[onblur*="renameVirtualGroup"]');
         const names = Array.from(inputs).map(i => i.value.trim()).filter(n => n !== "");
@@ -1010,11 +1010,10 @@
       saveBtn.disabled = true;
 
       try {
-        // 💡 精確對齊：直接抓取 handleAdminAuth 寫入的 sessionUser 憑證
         const loginUsername = sessionUser.username || "未知帳號";
         const loginToken = sessionUser.token || "";
 
-        // 將更新清冊、驗證帳號與 Token 一併打包送往後端
+        // 💡 呼叫後端 API
         const msg = await requestBackendApi("batchUpdateCampData", { 
           updates: updatesPayload,
           username: loginUsername,
@@ -1022,14 +1021,22 @@
         });
         
         alert("✅ 成功！" + msg);
+        
+        // 成功後的狀態重置
         deltaChangesMap.clear();
         isDataDirty = false;
         hideAllSaveBars();
-        await loadAllCampData(); // 重新整理
+        await loadAllCampData(); // 重新整理讀取最新狀態
+        
       } catch (err) {
         alert("❌ 寫入失敗：" + err.message);
-        saveBtn.innerText = origText;
-        saveBtn.disabled = false;
+      } finally {
+        // 💡 關鍵修復：不論 try 成功還是 catch 失敗，按鈕狀態與文字必定要強制回復！
+        // 這樣後續再次變動、跳出儲存 Bar 時，按鈕才不會維持在 disabled 狀態。
+        if (saveBtn) {
+          saveBtn.innerText = origText;
+          saveBtn.disabled = false;
+        }
       }
     }
 
