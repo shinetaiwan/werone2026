@@ -236,14 +236,13 @@
   
   
     <div id="admin-dashboard" class="container hidden">
-      
         <div class="section-title" id="dashboard-title">編組編寢後台</div>
-        <button class="btn btn-next" onclick="loadAllCampData()">🔄 同步 Sheets 最新名冊</button>
 
       <div class="tab-container">
         <button id="tab-btn-group" class="btn btn-next active" onclick="switchTab('group')">正式編組</button>
         <button id="tab-btn-dorm" class="btn btn-next" onclick="switchTab('dorm')">正式編寢</button>
         <button id="tab-btn-role" class="btn btn-next" onclick="switchTab('role')">隊輔確認</button>
+        <button class="btn btn-next" onclick="loadAllCampData()">🔄 同步 Sheets 最新名冊</button>
       </div>
 
       <div id="tab-content-group" class="tab-content">
