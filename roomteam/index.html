@@ -494,7 +494,7 @@
     }
 
     // =========================================
-    // ⛺ 功能模組一：編組調整主要邏輯 (精確對齊：報名窗口分群)
+    // ⛺ 功能模組一：編組調整主要邏輯 (排除取消、個人報名優先、待選池增設預編標籤)
     // =========================================
     function renderGroupTab() {
       const poolBox = document.getElementById("group-pool-container");
@@ -534,18 +534,23 @@
         }
       });
 
-      // 3. 🎯 依據「第23欄：報名窗口」進行待選池的分群與分塊呈現
+      // 3. 🎯 待選池依據「報名窗口」分群，空值者歸類為「個人報名」
       const clusteredPool = {};
       unassignedPool.forEach(m => {
-        const windowKey = m.origWindowClue || "未註明窗口";
+        // 💡 訴求 2：如果沒有報名窗口，視為「個人報名」
+        const windowKey = (m.origWindowClue && m.origWindowClue.trim() !== "") ? m.origWindowClue : "👤 個人報名";
         if (!clusteredPool[windowKey]) clusteredPool[windowKey] = [];
         clusteredPool[windowKey].push(m);
       });
 
-      // 排序窗口名稱
-      const sortedWindowKeys = Object.keys(clusteredPool).sort();
+      // 💡 訴求 2：排序窗口名稱，並確保「👤 個人報名」永遠排在最前面
+      const sortedWindowKeys = Object.keys(clusteredPool).sort((a, b) => {
+        if (a === "👤 個人報名") return -1;
+        if (b === "👤 個人報名") return 1;
+        return a.localeCompare(b);
+      });
 
-      // 輸出左側名單池 HTML (以報名窗口為大黑框分群，顯示姓名與教會)
+      // 輸出左側名單池 HTML
       if (unassignedPool.length === 0) {
         poolBox.innerHTML = '<div class="empty-placeholder" style="color:#fff;">(全體均已分組完成)</div>';
       } else {
@@ -554,17 +559,32 @@
           return `
             <div style="margin-bottom: 15px; border: 2px solid var(--shine-black); background: #222; padding: 5px;">
               <div style="color: var(--shine-lime); font-weight: 900; font-size: 13px; padding-bottom: 5px; border-bottom: 1px solid #444;">
-                🏢 窗口：${wKey} (${studentsInWindow.length}人)
+                ${wKey.includes("個人報名") ? wKey : '🏢 窗口：' + wKey} (${studentsInWindow.length}人)
               </div>
               <div style="margin-top: 5px;">
-                ${studentsInWindow.map(m => `
-                  <div class="pool-item" onclick="assignToActiveGroup(${m.row})" style="padding: 6px 10px; margin-bottom: 4px;">
-                    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px;">
-                      <span style="font-size: 15px; font-weight: 900; color: var(--shine-black);">${m.name}</span>
-                      <span style="font-size: 11px; font-weight: 700; color: #666;">⛪ ${m.church}</span>
+                ${studentsInWindow.map(m => {
+                  // 💡 訴求 1：判斷是否取消報名
+                  const isCancelled = (m.status === "取消報名");
+                  const clickAction = isCancelled ? "" : `onclick="assignToActiveGroup(${m.row})"`;
+                  const cancelStyle = isCancelled ? "background: #444 !important; opacity: 0.4; cursor: not-allowed !important; border: 1px dashed #666;" : "";
+                  
+                  return `
+                    <div class="pool-item" ${clickAction} style="padding: 6px 10px; margin-bottom: 4px; ${cancelStyle}">
+                      <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px;">
+                        <span style="font-size: 15px; font-weight: 900; color: ${isCancelled ? '#888' : 'var(--shine-black)'};">
+                          ${m.name} ${isCancelled ? '<span style="color:var(--shine-red); font-size:11px;">[已取消]</span>' : ''}
+                        </span>
+                        <span style="font-size: 11px; font-weight: 700; color: #666;">
+                          ⛪ ${m.church}
+                        </span>
+                        <!-- 💡 訴求 2：待選池名單新增預編組標籤 -->
+                        <span style="font-size: 10px; background: rgba(0,0,0,0.05); padding: 1px 4px; border-radius: 2px; color: #555; margin-top: 2px;">
+                          ↩️ 預組: ${m.origGroupClue || '無'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                `).join('')}
+                  `;
+                }).join('')}
               </div>
             </div>
           `;
@@ -585,7 +605,7 @@
         allowedGroups = Array.from(new Set([...dictionaryGroups, ...dynamicCreatedInMajor])).sort();
       }
 
-      // 5. 繪製右側小組卡片 (呈現姓名、教會，並貼上原預編與原窗口標籤)
+      // 5. 繪製右側小組卡片
       canvasBox.innerHTML = allowedGroups.map(gName => {
         const ms = localGroupMap[gName] || [];
         const isActive = (activeGroupId === gName);
@@ -601,7 +621,10 @@
               ${ms.length > 0 ? ms.map(m => `
                 <div class="member-row" style="align-items: flex-start; flex-direction: column; padding: 8px 0; gap: 4px;">
                   <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                    <span style="font-weight: 900; font-size: 15px;">• ${m.name} <small style="font-weight: 700; color: #555;">(${m.church})</small></span>
+                    <span style="font-weight: 900; font-size: 15px; color: ${m.status === '取消報名' ? '#888' : 'inherit'}">
+                      • ${m.name} <small style="font-weight: 700; color: #555;">(${m.church})</small>
+                      ${m.status === '取消報名' ? '<span style="color:var(--shine-red); font-size:10px;">[已取消]</span>' : ''}
+                    </span>
                     <span style="color:var(--shine-red); cursor:pointer; font-size:18px; font-weight:900;" 
                           onclick="event.stopPropagation(); removeStudentFromGroup(${m.row})">×</span>
                   </div>
@@ -610,7 +633,7 @@
                       ↩️ 預組: ${m.origGroupClue || '無'}
                     </span>
                     <span class="clue-badge" style="background: var(--shine-light); font-size: 10px; color: #666; border-style: dashed;">
-                      🏢 窗: ${m.origWindowClue || '無'}
+                      🏢 窗: ${(m.origWindowClue && m.origWindowClue.trim() !== "") ? m.origWindowClue : "個人報名"}
                     </span>
                   </div>
                 </div>`).join('') : '<div class="empty-placeholder">(此組尚無成員)</div>'}
@@ -643,18 +666,54 @@
       markDataAsDirty('group'); renderGroupTab();
     }
 
+    // 💡 訴求 3：一鍵自動定位（已整合：排除個人報名、排除取消報名）
     function executeSpeedyGroup() {
+      // 安全防呆提示
+      if (!confirm("確定要將待選池中「非個人報名」且「未取消」的學員，依據原預編組直接填入正式編組嗎？")) return;
+
       let count = 0;
+      let skipIndividualCount = 0;
+      let skipCancelledCount = 0;
+
       rawCampList.forEach(m => {
         const d = deltaChangesMap.get(m.row);
         const currentG = (d && d.group !== undefined) ? d.group : m.group;
-        if ((!currentG || currentG.trim() === "") && m.origGroupClue) {
-          deltaChangesMap.set(m.row, { ...(d || {}), row: m.row, group: m.origGroupClue, teamRole: "" });
-          if (!v_createdGroups.includes(m.origGroupClue)) v_createdGroups.push(m.origGroupClue);
-          count++;
+        
+        // 只有「目前沒分配正式組別」的人才進行自動分配
+        if (!currentG || currentG.trim() === "") {
+          
+          // 🛑 核心攔截 1：排除「取消報名」
+          if (m.status === "取消報名") {
+            skipCancelledCount++;
+            return; // 跳過此人
+          }
+
+          // 🛑 核心攔截 2：排除「沒有窗口（個人報名）」
+          if (!m.origWindowClue || m.origWindowClue.trim() === "") {
+            skipIndividualCount++;
+            return; // 跳過此人
+          }
+
+          // 順利通過檢查，且存有預編組線索才進行歸隊
+          if (m.origGroupClue && m.origGroupClue.trim() !== "" && m.origGroupClue !== "無預編組") {
+            deltaChangesMap.set(m.row, { ...(d || {}), row: m.row, group: m.origGroupClue, teamRole: "" });
+            
+            // 如果新創的小組不在虛擬快取陣列中，則補進去，確保右側畫布順利渲染卡片
+            if (!v_createdGroups.includes(m.origGroupClue)) {
+              v_createdGroups.push(m.origGroupClue);
+            }
+            count++;
+          }
         }
       });
-      if (count > 0) { markDataAsDirty('group'); renderGroupTab(); alert(`⚡ 已將 ${count} 位學員依照團報小組名單自動定位！`); } else { alert("名冊池內已無符合未編組學員。"); }
+
+      if (count > 0) { 
+        markDataAsDirty('group'); 
+        renderGroupTab(); 
+        alert(`⚡ 一鍵自動定位完成！\n✅ 已將 ${count} 位團報學員依照預編名單填入正式小組。\n⚠️ 已自動跳過：個人報名 ${skipIndividualCount} 人、取消報名 ${skipCancelledCount} 人。`); 
+      } else { 
+        alert(`名冊池內目前已無符合條件（團報且未取消）的未編組學員。\n（本次過濾跳過：個人報名 ${skipIndividualCount} 人、取消報名 ${skipCancelledCount} 人）`); 
+      }
     }
 
 
