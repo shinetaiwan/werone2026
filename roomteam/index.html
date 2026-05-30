@@ -2,222 +2,354 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>營隊編組編寢大後台</title>
+  <title>營隊行政生活大後台</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    /* =========================================
+       1. 系統核心 Neo-Brutalism 風格變數與基礎
+       ========================================= */
     :root {
-      --cyber-bg: #0a0b0e;
-      --cyber-card: #14171f;
-      --cyber-neon-green: #39ff14;
-      --cyber-neon-blue: #00d4ff;
-      --cyber-neon-pink: #ff007f;
-      --cyber-warning: #ffaa00;
-      --cyber-text: #e2e8f0;
-      --cyber-border: #2d3748;
+      --shine-lime: #00ff7f;   /* 亮綠色 */
+      --shine-black: #1a1a1a;  /* 黑色 */
+      --shine-bg: #ffffff;     /* 白色背景 */
+      --shine-light: #f4f7f5;  /* 淺灰色背景 */
+      --shine-gray: #d1d1d1;   /* 灰色線條 */
+      --shine-red: #ff4d4d;    /* 警告紅色 */
+      --shine-blue: #3498db;   /* 分組藍色 */
     }
 
-    * { box-sizing: border-box; font-family: 'PingFang TC', "Microsoft JhengHei", sans-serif; }
-    body { background-color: var(--cyber-bg); color: var(--cyber-text); margin: 0; padding: 20px; }
-
-    .btn {
-      background: #ffffff; color: #000000; border: 2px solid #000000; padding: 8px 16px;
-      font-weight: 900; cursor: pointer; box-shadow: 3px 3px 0px rgba(255,255,255,0.1);
-      transition: all 0.1s ease; outline: none;
+    * { box-sizing: border-box; }
+    body { 
+      font-family: "Inter", "Noto Sans TC", sans-serif; 
+      background-color: #f0f0f0; 
+      margin: 0; 
+      padding: 10px; 
     }
-    .btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0px var(--cyber-neon-green); }
-    .btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px black; }
-    .btn:disabled { background: #4a5568 !important; color: #a0aec0 !important; cursor: not-allowed; box-shadow: none !important; transform: none !important; }
-    
-    .btn-next { background: var(--cyber-neon-green) !important; color: #000000 !important; }
-    .btn-danger { background: var(--cyber-neon-pink) !important; color: #ffffff !important; }
-    .btn-outline { background: transparent !important; color: var(--cyber-text) !important; border-color: var(--cyber-border) !important; }
-    .btn-outline.active-tab { border-color: var(--cyber-neon-green) !important; color: var(--cyber-neon-green) !important; background: #1c2230 !important; }
 
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-weight: 900; margin-bottom: 6px; font-size: 14px; color: var(--cyber-neon-green); }
-    .form-control { width: 100%; padding: 10px; border: 2px solid var(--cyber-border); background: #1a202c; color: #fff; font-weight: bold; }
-    .form-control:focus { border-color: var(--cyber-neon-green); outline: none; }
-
-    #auth-block {
-      max-width: 450px; margin: 100px auto; background: var(--cyber-card); 
-      border: 3px solid #000; padding: 40px; box-shadow: 10px 10px 0px #000;
+    .container {
+      max-width: 1350px; 
+      margin: 20px auto; 
+      background: var(--shine-bg);
+      padding: clamp(20px, 4vw, 40px); 
+      border: 3px solid var(--shine-black);
+      box-shadow: 12px 12px 0px var(--shine-black); 
+      box-sizing: border-box;
+      position: relative;
     }
 
     header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 4px solid var(--shine-black);
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    header h1 { margin: 0; font-weight: 900; font-size: 26px; color: var(--shine-black); }
+
+    /* =========================================
+       2. 表單、輸入元件與區塊標題
+       ========================================= */
+    .form-section { 
+      border: 2px solid var(--shine-black); 
+      padding: 20px; 
+      background: var(--shine-light); 
+      margin-bottom: 30px; 
+    }
+
+    .section-title { 
+      display: inline-block; 
+      background: var(--shine-black); 
+      color: var(--shine-lime); 
+      padding: 5px 20px; 
+      font-weight: 900; 
+      font-size: 1.1em; 
+      margin-bottom: 20px; 
+      margin-top: -35px; 
+      border: 2px solid var(--shine-black); 
+      box-shadow: 4px 4px 0px var(--shine-lime);
+    }
+
+    input, select, textarea { 
+      border: 2px solid var(--shine-black); 
+      padding: 12px; 
+      font-size: 16px; 
+      width: 100%; 
+      box-sizing: border-box; 
+      margin-top: 5px; 
+      background: #fff;
+    }
+    input:focus, select:focus { outline: 3px solid var(--shine-black); }
+
+    label { 
+      font-weight: 900; 
+      background: var(--shine-lime); 
+      padding: 2px 10px; 
+      display: inline-block;
+    }
+
+    /* =========================================
+       3. 高級粗線條硬派按鈕群
+       ========================================= */
+    .btn { 
+      padding: 12px 25px; 
+      font-weight: 900; 
+      border: 2px solid var(--shine-black); 
+      cursor: pointer; 
+      display: inline-flex; 
+      align-items: center; 
+      justify-content: center; 
+      text-transform: uppercase; 
+      text-decoration: none; 
+      transition: all 0.1s ease;
+      background: var(--shine-bg); 
+      color: var(--shine-black); 
+    }
+
+    .btn:hover {
+      background: var(--shine-black);
+      color: var(--shine-lime);
+      box-shadow: 4px 4px 0px var(--shine-gray);
+      transform: translate(-2px, -2px);
+    }
+    .btn:active { transform: translate(1px, 1px); box-shadow: none; }
+    .btn:disabled { background: #e0e0e0 !important; color: #999 !important; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+    /* 分頁與大隊切換按鈕控制 */
+    .btn-next { background: var(--shine-bg); color: var(--shine-black); }
+    .btn-next:hover, .btn-next.active { 
+      background: var(--shine-black); 
+      color: var(--shine-lime); 
+      box-shadow: 6px 6px 0px var(--shine-black); 
+      transform: translate(-3px, -3px); 
+    }
+
+    /* 儲存動作專用按鈕 (底色紅) */
+    .btn-save-action {
+      width: 100%;
+      background: var(--shine-red) !important;
+      color: white !important;
+      border: 2px solid var(--shine-black);
+      box-shadow: 6px 6px 0px var(--shine-black);
+      font-size: 1.2em;
+      font-weight: 900;
+    }
+    .btn-save-action:hover { background: var(--shine-black) !important; color: var(--shine-red) !important; }
+    .btn-save-action:active { transform: translate(2px, 2px); box-shadow: 4px 4px 0px var(--shine-black); }
+
+    /* =========================================
+       4. 卡片與清單佈局 (左名冊池，右大畫布)
+       ========================================= */
+    .tab-container { display: flex; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+    
+    /* 雙欄主架構：左邊 1 份，右邊 2 份 */
+    .workspace-layout { display: grid; grid-template-columns: 1fr 2.5fr; gap: 20px; margin-top: 20px; align-items: start; }
+    
+    .member-pool { background: #333333; padding: 15px; border: 3px solid var(--shine-black); min-height: 550px; max-height: 780px; overflow-y: auto; }
+    .pool-item { 
+      background: white; border: 2px solid var(--shine-black); padding: 10px 12px; 
+      margin-bottom: 8px; font-weight: 800; cursor: pointer; 
       display: flex; justify-content: space-between; align-items: center;
-      border-bottom: 4px solid #000; padding-bottom: 15px; margin-bottom: 20px;
+      transition: transform 0.05s;
     }
-    header h1 { margin: 0; font-weight: 900; font-size: 24px; letter-spacing: 1px; }
+    .pool-item:hover { transform: scale(1.02); border-color: var(--shine-lime); }
 
-    .tab-nav { display: flex; gap: 10px; margin-bottom: 25px; }
-    .tab-nav button { flex: 1; font-size: 16px; padding: 14px; font-weight: 900; }
+    .grid-display-area { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; align-content: start; }
 
-    .workspace { display: flex; gap: 20px; min-height: 650px; align-items: flex-start; }
-    .pool-sidebar { width: 30%; background: var(--cyber-card); border: 2px solid #000; padding: 15px; max-height: 750px; overflow-y: auto; }
-    .grid-canvas { width: 70%; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; align-content: flex-start; }
-
-    .pool-item { background: #1e2330; padding: 12px; margin-bottom: 8px; border-left: 4px solid #4a5568; transition: all 0.1s; }
-    .pool-item:hover { border-left-color: #fff; background: #2d3748; transform: translateX(2px); }
-    .status-tag { display: inline-block; font-size: 11px; padding: 1px 5px; font-weight: bold; background: #2d3748; color: #cbd5e0; margin-left: 4px; border-radius: 2px; }
-    
-    .item-card { background: var(--cyber-card); border: 2px solid #000; padding: 15px; display: flex; flex-direction: column; min-height: 180px; }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px dashed #2d3748; padding-bottom: 6px; }
-    
-    .active-group { border-color: var(--cyber-neon-green) !important; box-shadow: 0 0 12px rgba(57,255,20,0.2); }
-    .active-room { border-color: var(--cyber-neon-blue) !important; box-shadow: 0 0 12px rgba(0,212,255,0.2); }
-
-    .member-row { display: flex; justify-content: space-between; align-items: center; background: #1a202c; padding: 6px 10px; margin-bottom: 6px; font-size: 13px; }
-
-    .role-container { display: flex; width: 100%; gap: 20px; }
-    .role-menu { width: 25%; background: var(--cyber-card); border: 2px solid #000; max-height: 700px; overflow-y: auto; padding: 10px; }
-    .role-menu-item { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 12px; text-align: left; background: #1a202c; border: 1px solid #2d3748; margin-bottom: 6px; color: #fff; font-weight: bold; cursor: pointer; }
-    .role-menu-item:hover { background: #2d3748; }
-    .role-menu-item.active-menu-item { border-left: 5px solid var(--cyber-neon-green); background: #222a3a; }
-    .role-content-view { width: 75%; background: var(--cyber-card); border: 2px solid #000; padding: 20px; min-height: 500px; }
-
-    .floating-save-bar {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      width: 90%; max-width: 850px; background: var(--cyber-warning); color: #000000;
-      border: 3px solid #000; padding: 15px 25px; display: flex; justify-content: space-between;
-      align-items: center; font-weight: 900; box-shadow: 6px 6px 0px #000; z-index: 9999;
+    .item-card {
+      background: var(--shine-bg); border: 3px solid var(--shine-black); padding: 15px;
+      cursor: pointer; transition: all 0.1s ease; position: relative; display: flex; flex-direction: column; min-height: 200px;
     }
+    .item-card:hover { transform: translate(-4px, -4px); box-shadow: 8px 8px 0px var(--shine-black); }
+
+    /* 高亮對齊色框 */
+    .item-card.active-group { border-color: var(--shine-blue) !important; box-shadow: 6px 6px 0px var(--shine-blue); }
+    .item-card.active-room { border-color: var(--shine-lime) !important; box-shadow: 6px 6px 0px var(--shine-lime); }
+
+    .card-header {
+      border-bottom: 2px solid var(--shine-black); padding-bottom: 10px; margin-bottom: 15px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    
+    .member-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 0; border-bottom: 1px dashed var(--shine-gray); font-weight: 700; font-size: 14px; color: #222;
+    }
+    .empty-placeholder { color: #a0a0a0; font-size: 13px; text-align: center; padding: 30px 0; font-style: italic; }
+    .status-tag { font-size: 11px; padding: 2px 6px; background: var(--shine-black); color: var(--shine-lime); font-weight: 800; margin-left: 5px; }
+
+    /* =========================================
+       5. 隊輔專用分頁排版
+       ========================================= */
+    .role-flex-layout { display: grid; grid-template-columns: 1fr 3fr; gap: 20px; align-items: start; }
+    .role-menu-box { border: 3px solid var(--shine-black); background: var(--shine-light); padding: 15px; max-height: 700px; overflow-y: auto; }
+    .role-menu-item { 
+      padding: 12px; background: #fff; border: 2px solid var(--shine-black); font-weight: 900; 
+      margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    }
+    .role-menu-item:hover { background: var(--shine-black); color: #fff; }
+    .role-menu-item.active-item { background: var(--shine-blue); color: #fff; }
+    
+    .role-detail-panel { border: 3px solid var(--shine-black); background: #fff; padding: 25px; min-height: 500px; }
+    .role-table { width: 100%; border-collapse: collapse; }
+    .role-table th { background: var(--shine-black); color: #fff; padding: 10px; font-weight: 900; }
+    .role-table td { padding: 12px 10px; border-bottom: 2px solid var(--shine-light); font-weight: 700; }
+
+    /* =========================================
+       6. 儲存浮動列 (Sticky Save Bar) 與動畫
+       ========================================= */
+    .save-bar {
+      position: sticky; bottom: 15px; padding: 18px 25px; z-index: 100; margin-top: 30px;
+      background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px);
+      border: 3px solid var(--shine-black); border-top: 5px solid var(--shine-black);
+      box-shadow: 6px 6px 0px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;
+    }
+    .save-info-text { font-weight: 900; font-size: 15px; color: var(--shine-black); }
+
+    .tab-content { animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    @keyframes shake-red { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+    .shake-alert { animation: shake-red 0.4s ease-in-out; outline: 4px solid var(--shine-red) !important; border-color: var(--shine-red) !important; }
+
     .hidden { display: none !important; }
-    
-    @keyframes bar-shake {
-      0%, 100% { transform: translate(-50%, 0); }
-      25% { transform: translate(-51%, -2px); }
-      75% { transform: translate(-49%, 2px); }
-    }
-    .shake-alert { animation: bar-shake 0.15s ease-in-out 3; border-color: var(--cyber-neon-pink) !important; }
-
-    .pagination-bar { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; width: 100%; grid-column: 1 / -1; }
-    .filter-tabs { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
-
-    .clue-hint { font-size: 11px; color: var(--cyber-warning); background: rgba(255,170,0,0.1); padding: 2px 6px; border: 1px solid rgba(255,170,0,0.2); border-radius: 3px; display: inline-block; margin-top: 4px; }
+    .clue-badge { font-size: 11px; background: #fff; border: 1px solid var(--shine-black); color: #444; padding: 1px 4px; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <div id="auth-block">
-    <h2 style="margin-top:0; font-weight:900; text-align:center; color:var(--cyber-neon-green)">🔒 營隊編組編寢系統登入</h2>
-    <p style="text-align:center; font-size:12px; color:#718096; margin-bottom:25px;">（請輸入行政人員帳號與加密密碼）</p>
-    <div class="form-group">
-      <label>行政管理帳號 (Username)</label>
-      <input type="text" id="adm_account" class="form-control" placeholder="輸入行政帳號">
-    </div>
-    <div class="form-group">
-      <label>安全管理密碼 (Password)</label>
-      <input type="password" id="adm_password" class="form-control" placeholder="輸入密碼">
-    </div>
-    <button class="btn btn-next" style="width:100%; margin-top:15px; font-size:16px;" onclick="handleAdminAuth()">驗證憑證並同步名冊</button>
-  </div>
-
-  <div id="admin-dashboard" class="hidden">
-    <header>
-      <h1>⚡ 營隊編組編寢生活行政大後台</h1>
-      <div style="display:flex; align-items:center; gap:15px;">
-        <span style="font-weight:900; color:var(--cyber-neon-green); font-size:14px;">🛡️ Token 權限已掛載</span>
-        <button class="btn" style="padding:6px 12px; font-size:12px;" onclick="loadAllCampData()">🔄 同步雲端最新 Sheets</button>
+  <div class="container">
+    
+    <div id="auth-block" class="form-section" style="max-width: 500px; margin: 60px auto;">
+      <span class="section-title">🔒 營隊行政生活後台登入</span>
+      <div style="margin-top: 10px;">
+        <label>行政人員帳號</label>
+        <input type="text" id="adm_account" placeholder="請輸入使用者帳號">
       </div>
-    </header>
-
-    <div class="tab-nav">
-      <button id="tab-btn-group" class="btn btn-outline active-tab" onclick="switchTab('group')">⛺ 1. 編組調整分頁</button>
-      <button id="tab-btn-dorm" class="btn btn-outline" onclick="switchTab('dorm')">🛏️ 2. 編寢作業分頁</button>
-      <button id="tab-btn-role" class="btn btn-outline" onclick="switchTab('role')">🛡️ 3. 隊輔管理分頁</button>
+      <div style="margin-top: 15px;">
+        <label>安全雜湊密碼</label>
+        <input type="password" id="adm_password" placeholder="請輸入密碼">
+      </div>
+      <button class="btn btn-save-action" style="margin-top: 25px;" onclick="handleAdminAuth()">認證憑證並同步雲端</button>
     </div>
 
-    <div id="tab-content-group" class="workspace">
-      <div class="pool-sidebar">
-        <h3 style="margin-top:0; font-weight:900;">待分配組別學員</h3>
-        <div style="margin-bottom:12px; display:flex; flex-direction:column; gap:8px;">
-          <button class="btn btn-next" style="width:100%; font-size:12px; padding:6px;" onclick="executeSpeedyGroup()">⚡ 依團報線索一鍵歸組 (欄21)</button>
-          <input type="text" id="group-search-input" class="form-control" style="padding:6px; font-size:12px;" placeholder="搜尋學員姓名/教會/預組..." oninput="renderGroupTab()">
+    <div id="admin-dashboard" class="hidden">
+      
+      <header>
+        <h1 id="welcome-title">⚡ 營隊編組編寢生活行政大後台</h1>
+        <button class="btn btn-next" onclick="loadAllCampData()">🔄 同步 Sheets 最新名冊</button>
+      </header>
+
+      <div class="tab-container">
+        <button id="tab-btn-group" class="btn btn-next active" onclick="switchTab('group')">⛺ 1. 編組調整作業</button>
+        <button id="tab-btn-dorm" class="btn btn-next" onclick="switchTab('dorm')">🛏️ 2. 全員編寢分房</button>
+        <button id="tab-btn-role" class="btn btn-next" onclick="switchTab('role')">🛡️ 3. 隊輔配額精確控管</button>
+      </div>
+
+      <div id="tab-content-group" class="tab-content">
+        <div style="margin-bottom: 15px;">
+          <strong style="display:block; margin-bottom:8px; font-weight:900;">🎯 大隊規劃切換分流：</strong>
+          <div class="tab-container" id="group-main-tabs"></div>
         </div>
-        <div id="group-pool-container">⏳ 載入中...</div>
-      </div>
-      <div style="width:70%;">
-        <div style="display:flex; justify-content:between; align-items:center; margin-bottom:15px; width:100%;">
-          <div style="flex-grow:1; display:flex; gap:10px; align-items:center;">
-            <button class="btn btn-next" onclick="addNewVirtualGroup()">➕ 新增空小組</button>
-            <input type="text" id="canvas-group-filter" class="form-control" style="max-width:200px; padding:6px;" placeholder="快搜篩選小組..." oninput="g_currentPage=1; renderGroupTab();">
+
+        <div class="workspace-layout">
+          <div>
+            <div style="margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px;">
+              <button class="btn" style="width:100%; font-size:12px; padding:6px; background:var(--shine-lime);" onclick="executeSpeedyGroup()">⚡ 依團報線索一鍵預編歸組 (欄21)</button>
+              <input type="text" id="group-search-input" placeholder="搜尋學員姓名/性別/預編組..." style="padding: 8px;" oninput="renderGroupTab()">
+            </div>
+            <div id="group-pool-container" class="member-pool">⏳ 載入名冊中...</div>
           </div>
-          <span id="group-focus-banner" style="font-weight:900; color:var(--cyber-neon-green); font-size:13px;">👉 請點選右側小組，再點左側名單加入</span>
-        </div>
-        <div id="group-grid-canvas" class="grid-canvas"></div>
-        <div id="group-pagination" class="pagination-bar"></div>
-      </div>
-    </div>
-    <div id="save-bar-group" class="floating-save-bar hidden">
-      <div>⚠️ 偵測到小組或組名有局部變動，請記得點擊右側儲存同步至雲端！</div>
-      <button class="btn btn-danger" onclick="commitDeltaChangesToServer(this)">💾 確定儲存小組分配</button>
-    </div>
-
-    <div id="tab-content-dorm" class="workspace hidden">
-      <div class="pool-sidebar">
-        <h3 style="margin-top:0; font-weight:900;">待分配床位學員</h3>
-        <div style="margin-bottom:12px; display:flex; flex-direction:column; gap:8px;">
-          <button class="btn btn-next" style="width:100%; font-size:12px; padding:6px;" onclick="executeSpeedyDorm()">⚡ 依團報線索一鍵歸寢 (欄27)</button>
-          <input type="text" id="dorm-search-input" class="form-control" style="padding:6px; font-size:12px;" placeholder="搜尋學員姓名/性別/原房..." oninput="renderDormTab()">
-        </div>
-        <div id="dorm-pool-container">⏳ 載入中...</div>
-      </div>
-      <div style="width:70%;">
-        <div class="filter-tabs" id="dorm-region-tabs"></div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-          <button class="btn btn-next" onclick="addNewVirtualRoom()">➕ 新增空房間</button>
-          <span id="dorm-focus-banner" style="font-weight:900; color:var(--cyber-neon-blue); font-size:13px;">👉 請點選右側房間，再點左側名單入住</span>
-        </div>
-        <div id="room-grid-canvas" class="grid-canvas"></div>
-      </div>
-    </div>
-    <div id="save-bar-dorm" class="floating-save-bar hidden">
-      <div>⚠️ 偵測到寢室或房號有局部變動，請記得點擊右側儲存同步至雲端！</div>
-      <button class="btn btn-danger" onclick="commitDeltaChangesToServer(this)">💾 確定儲存寢室分配</button>
-    </div>
-
-    <div id="tab-content-role" class="workspace hidden" style="display:none;">
-      <div class="role-container">
-        <div class="role-menu">
-          <div style="padding:5px; margin-bottom:10px; display:flex; flex-direction:column; gap:5px;">
-            <button class="btn btn-next" style="font-size:11px; padding:5px 0;" onclick="executeSpeedyRoleTransfer()">⚡ 依團報線索一鍵轉正隊輔 (欄22)</button>
-            <input type="text" id="role-group-search" class="form-control" style="padding:4px; font-size:11px;" placeholder="過濾篩選組別..." oninput="renderRoleTab()">
-          </div>
-          <div id="role-group-list-menu"></div>
-        </div>
-        <div class="role-content-view">
-          <div id="role-view-header" style="border-bottom:2px solid var(--cyber-border); padding-bottom:10px; margin-bottom:15px;">
-            <h3 id="role-selected-group-title" style="margin:0; font-weight:900; color:var(--cyber-neon-green)">👈 請選擇左側小組查看隊輔配額</h3>
-          </div>
-          <div id="role-members-table-body">
-            <p style="color:#718096; font-style:italic;">請從左側點選一組來進行正/副隊輔名額控管。</p>
+          <div>
+            <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:15px;">
+              <button class="btn btn-next" onclick="addNewVirtualGroup()">＋ 開拓空小組</button>
+              <span id="group-focus-banner" style="font-weight:900; color:var(--shine-blue);">👉 請點選右側目標小組卡片，再點左側人員直接加入</span>
+            </div>
+            <div id="group-grid-canvas" class="grid-display-area"></div>
           </div>
         </div>
+
+        <div id="save-bar-group" class="save-bar hidden">
+          <div class="save-info-text">⚠️ 偵測到目前大隊或小組分配有些微變動，請記得點擊右側同步至試算表！</div>
+          <button class="btn btn-save-action" style="width:250px;" onclick="commitDeltaChangesToServer('group')">💾 儲存小組異動</button>
+        </div>
       </div>
-    </div>
-    <div id="save-bar-role" class="floating-save-bar hidden">
-      <div>⚠️ 偵測到隊輔職稱異動，請記得點擊右側儲存同步至雲端！</div>
-      <button class="btn btn-danger" onclick="commitDeltaChangesToServer(this)">💾 確定儲存隊輔職稱</button>
+
+      <div id="tab-content-dorm" class="tab-content hidden">
+        <div style="margin-bottom: 15px;">
+          <strong style="display:block; margin-bottom:8px; font-weight:900;">🏨 住宿區域選擇：</strong>
+          <div class="tab-container" id="dorm-region-tabs"></div>
+        </div>
+
+        <div class="workspace-layout">
+          <div>
+            <div style="margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px;">
+              <button class="btn" style="width:100%; font-size:12px; padding:6px; background:var(--shine-lime);" onclick="executeSpeedyDorm()">⚡ 依團報線索一鍵預編歸寢 (欄27)</button>
+              <input type="text" id="dorm-search-input" placeholder="過濾學員姓名/性別..." style="padding: 8px;" oninput="renderDormTab()">
+            </div>
+            <div id="dorm-pool-container" class="member-pool">⏳ 載入名冊中...</div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:15px;">
+              <button class="btn btn-next" onclick="addNewVirtualRoom()">＋ 開拓新房間</button>
+              <span id="dorm-focus-banner" style="font-weight:900; color:var(--shine-lime);">👉 請選取右側目標房間，點左側人員入住（男女生硬防混住攔截）</span>
+            </div>
+            <div id="room-grid-canvas" class="grid-display-area"></div>
+          </div>
+        </div>
+
+        <div id="save-bar-dorm" class="save-bar hidden">
+          <div class="save-info-text">⚠️ 偵測到房間配置或房號更動，請點擊右側上傳儲存！</div>
+          <button class="btn btn-save-action" style="width:250px;" onclick="commitDeltaChangesToServer('dorm')">💾 儲存寢室分房</button>
+        </div>
+      </div>
+
+      <div id="tab-content-role" class="tab-content hidden">
+        <div class="role-flex-layout">
+          <div class="role-menu-box">
+            <div style="margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px;">
+              <button class="btn" style="font-size:11px; padding:6px 0; background:var(--shine-lime);" onclick="executeSpeedyRoleTransfer()">⚡ 依線索一鍵核准正副隊輔 (欄22)</button>
+              <input type="text" id="role-group-search" placeholder="篩選組別..." style="padding: 6px; font-size:13px;" oninput="renderRoleTab()">
+            </div>
+            <div id="role-group-list-menu"></div>
+          </div>
+          <div class="role-detail-panel">
+            <h3 id="role-selected-group-title" style="margin-top:0; border-bottom: 3px double var(--shine-black); padding-bottom: 10px; font-weight:900;">👈 請先自左側選取組別</h3>
+            <div id="role-members-table-body">
+              <p style="color:var(--shine-gray); font-style:italic;">請從左側點選正式組別來控管正/副隊輔配額與職稱（正職限額 1 名、副職限額 2 名防呆）。</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="save-bar-role" class="save-bar hidden">
+          <div class="save-info-text">⚠️ 偵測到隊輔身分變更，請點擊右側儲存按鈕寫入 Sheets 總表！</div>
+          <button class="btn btn-save-action" style="width:250px;" onclick="commitDeltaChangesToServer('role')">💾 儲存隊輔職稱</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
   <script>
-    // 📌 請將部署後的 Google Apps Script Web App 網址貼於此處
-    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/AKfycbzQWMege-IG3bZz1AuKNdb2eKqEem1a_ae2R2vcgpOy7QRuA9A5ZYkvy89oMOC3h0HLDQ/exec";
+    // 📌 請將部署後的 Google Apps Script 網頁應用程式 URL 貼在此處
+    const DEPLOYED_GAS_URL = "https://script.google.com/macros/s/XXXXXX/exec";
 
-    // 🔒 儲存當次登入核發的動態 Token 與帳號資訊
+    // 安全憑證暫存區
     let sessionUser = { username: "", token: "", realName: "" };
     
+    // 全局原始資料結構
     let rawCampList = [];
     let isDataDirty = false;
-    let deltaChangesMap = new Map(); 
+    let deltaChangesMap = new Map(); // 存放尚未上傳的異動資料
 
-    let g_currentPage = 1;
-    const g_pageSize = 12; 
+    // 分頁一（編組）專用控制
+    let currentSelectedGroupTab = "全部"; 
     let activeGroupId = null;
     let v_createdGroups = [];
 
-    // 🛏️ 虛擬住宿區域對照字典
+    // 分頁二（編寢）定義住宿對照字典與控制
     const DORM_REGIONS_DICTIONARY = {
       "信實樓 1F": ["101", "102", "103", "104", "105", "106", "107", "108"],
       "信實樓 2F": ["201", "202", "203", "204", "205", "206", "207", "208"],
@@ -227,9 +359,11 @@
     let currentSelectedRegion = "信實樓 1F";
     let activeRoomNo = null;
     let v_createdRooms = [];
+
+    // 分頁三（隊輔）控制
     let activeRoleGroupId = null;
 
-    // 🛡️ 核心：每次請求都自動附加 Token 驗證
+    // 🛡️ API 安全封裝：所有傳輸自動掛載動態驗證 Token
     async function requestBackendApi(action, payloadPayload) {
       const bodyData = {
         action: action,
@@ -248,18 +382,18 @@
       return data.data;
     }
 
-    // 🔒 處理行政後台登入
+    // 🔒 安全驗證登入
     async function handleAdminAuth() {
       const uInput = document.getElementById("adm_account").value.trim();
       const pInput = document.getElementById("adm_password").value.trim();
 
       if (!uInput || !pInput) {
-        alert("❌ 請輸入管理帳號與密碼！");
+        alert("❌ 請完整輸入行政人員帳號與密碼！");
         return;
       }
 
       const loginBtn = document.querySelector("#auth-block button");
-      loginBtn.innerText = "⏳ 安全驗證與權限掛載中...";
+      loginBtn.innerText = "⏳ 雜湊比對與安全 Token 核發中...";
       loginBtn.disabled = true;
 
       try {
@@ -271,45 +405,47 @@
           })
         });
         const result = await res.json();
-        
         if (!result.success) throw new Error(result.message);
 
-        // 登入獲准，記入動態 Token
+        // 登入成功，寫入動態憑證
         sessionUser.username = uInput;
         sessionUser.token = result.data.token;
         sessionUser.realName = result.data.userName;
 
         document.getElementById("auth-block").classList.add('hidden');
         document.getElementById("admin-dashboard").classList.remove('hidden');
+        document.getElementById("welcome-title").innerText = `⚡ 歡迎行政人員：${sessionUser.realName} ｜ 營隊行政生活大後台`;
         
-        document.querySelector("header h1").innerText = `⚡ 歡迎行政：${sessionUser.realName} ｜ 營隊行政生活大後台`;
         await loadAllCampData();
       } catch (err) {
         alert(err.message);
-        loginBtn.innerText = "驗證憑證並同步名冊";
+        loginBtn.innerText = "認證憑證並同步雲端";
         loginBtn.disabled = false;
       }
     }
 
+    // 🔄 全域拉取雲端試算表資料
     async function loadAllCampData() {
       try {
-        document.getElementById("group-pool-container").innerHTML = "⏳ 同步雲端名冊中...";
-        document.getElementById("dorm-pool-container").innerHTML = "⏳ 同步雲端名冊中...";
+        document.getElementById("group-pool-container").innerHTML = "⏳ 同步雲端大資料庫中...";
+        document.getElementById("dorm-pool-container").innerHTML = "⏳ 同步雲端大資料庫中...";
         
         const data = await requestBackendApi("getCampFullData", {});
         rawCampList = Array.isArray(data) ? data : [];
         
+        // 清除先前髒資料與新創緩存
         deltaChangesMap.clear();
         v_createdGroups = [];
         v_createdRooms = [];
         isDataDirty = false;
         hideAllSaveBars();
 
+        // 強制重新渲染三個分頁
         renderGroupTab();
         renderDormTab();
         renderRoleTab();
       } catch (err) {
-        alert("❌ 名冊抓取失敗：" + err.message);
+        alert("❌ 名冊同步失敗：" + err.message);
       }
     }
 
@@ -324,13 +460,14 @@
       if (targetBar) targetBar.classList.remove('hidden');
     }
 
+    // 🔄 一級分頁安全攔截切換
     function switchTab(targetKey) {
       if (isDataDirty) {
         let activeKey = 'group';
         if (!document.getElementById('tab-content-dorm').classList.contains('hidden')) activeKey = 'dorm';
-        if (document.getElementById('tab-content-role').style.display === 'block') activeKey = 'role';
+        if (!document.getElementById('tab-content-role').classList.contains('hidden')) activeKey = 'role';
 
-        alert("⚠️ 偵測到您在目前分頁有異動尚未儲存！\n請先點擊底部的「確定儲存」或重整網頁放棄變更，才能切換分頁。");
+        alert("⚠️ 警告：目前分頁尚有修改未儲存！\n請先點擊底部的「確定儲存」上傳，或重整網頁放棄此次變更，才能切換分頁。");
         const activeBar = document.getElementById(`save-bar-${activeKey}`);
         if (activeBar) {
           activeBar.classList.add('shake-alert');
@@ -340,97 +477,119 @@
       }
 
       ['group', 'dorm', 'role'].forEach(k => {
-        const pane = document.getElementById(`tab-content-${k}`);
-        if(k==='role') { pane.style.display = 'none'; } else { pane.classList.add('hidden'); }
-        document.getElementById(`tab-btn-${k}`).classList.remove('active-tab');
+        document.getElementById(`tab-content-${k}`).classList.add('hidden');
+        document.getElementById(`tab-btn-${k}`).classList.remove('active');
       });
 
-      const targetPane = document.getElementById(`tab-content-${targetKey}`);
-      if(targetKey==='role') { targetPane.style.display = 'block'; } else { targetPane.classList.remove('hidden'); }
-      document.getElementById(`tab-btn-${targetKey}`).classList.add('active-tab');
+      document.getElementById(`tab-content-${targetKey}`).classList.remove('hidden');
+      document.getElementById(`tab-btn-${targetKey}`).classList.add('active');
 
       if (targetKey === 'group') renderGroupTab();
       if (targetKey === 'dorm') renderDormTab();
       if (targetKey === 'role') renderRoleTab();
     }
 
-    // ⛺ 功能模組一：編組調整主要邏輯
+    // =========================================
+    // ⛺ 功能模組一：編組調整主要邏輯 (依團報線索有秩序群聚排序)
+    // =========================================
     function renderGroupTab() {
       const poolBox = document.getElementById("group-pool-container");
       const canvasBox = document.getElementById("group-grid-canvas");
       const searchKeyword = document.getElementById("group-search-input").value.trim().toLowerCase();
-      const canvasFilter = document.getElementById("canvas-group-filter").value.trim().toLowerCase();
 
       const localGroupMap = {};
       const unassignedPool = [];
+      const discoveredMajorClusters = new Set(["全部", "未編大隊"]);
 
+      // 1. 解析與清洗全名冊狀態
       rawCampList.forEach(m => {
         const delta = deltaChangesMap.get(m.row);
         const finalGroup = (delta && delta.group !== undefined) ? delta.group : m.group;
+
+        // 分析學員第 21 欄團報線索，自動拆出「大隊級規劃」切換鈕 (例如："第一大隊_A組" 拆出 "第一大隊")
+        if (m.origGroupClue && m.origGroupClue.includes("_")) {
+          discoveredMajorClusters.add(m.origGroupClue.split("_")[0].trim());
+        } else if (m.origGroupClue) {
+          discoveredMajorClusters.add(m.origGroupClue.trim());
+        }
 
         if (finalGroup && finalGroup.trim() !== "") {
           if (!localGroupMap[finalGroup]) localGroupMap[finalGroup] = [];
           localGroupMap[finalGroup].push(m);
         } else {
+          // 搜尋過濾過篩
           if (searchKeyword) {
-            const match = m.name.toLowerCase().includes(searchKeyword) || m.origGroupClue.toLowerCase().includes(searchKeyword);
-            if (match) unassignedPool.push(m);
+            if (m.name.toLowerCase().includes(searchKeyword) || m.origGroupClue.toLowerCase().includes(searchKeyword)) {
+              unassignedPool.push(m);
+            }
           } else {
             unassignedPool.push(m);
           }
         }
       });
 
+      // 🎯 核心訴求二：讓待分配名單「依據團報預編組 (第21欄)」進行有秩序的 A-Z 升序排列
+      unassignedPool.sort((a, b) => String(a.origGroupClue).localeCompare(String(b.origGroupClue), 'zh-Hant'));
+
+      // 2. 渲染大隊切換分流按鈕
+      const majorTabsContainer = document.getElementById("group-main-tabs");
+      const sortedMajorTabs = Array.from(discoveredMajorClusters).sort();
+      majorTabsContainer.innerHTML = sortedMajorTabs.map(tabName => `
+        <button class="btn btn-next ${currentSelectedGroupTab === tabName ? 'active' : ''}" onclick="currentSelectedGroupTab='${tabName}'; renderGroupTab();">${tabName}</button>
+      `).join('');
+
+      // 3. 輸出左側名單池 HTML
       poolBox.innerHTML = unassignedPool.map(m => {
-        const hint = m.origGroupClue ? `<span class="status-tag">預組:${m.origGroupClue}</span>` : "";
+        const hint = m.origGroupClue ? `<span class="clue-badge">線索:${m.origGroupClue}</span>` : "";
         return `
-          <div class="pool-item" onclick="assignToActiveGroup(${m.row})" style="cursor:pointer;">
-            <div style="font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
-              <span>${m.name} (${m.gender})</span> ${hint}
-            </div>
+          <div class="pool-item" onclick="assignToActiveGroup(${m.row})">
+            <span>${m.name} <small style="color:#666;">(${m.gender})</small></span>
+            ${hint}
           </div>`;
-      }).join('') || '<div style="color:#4a5568;">(無符合待分配學員)</div>';
+      }).join('') || '<div class="empty-placeholder" style="color:#fff;">(全體均已分組完成)</div>';
 
+      // 4. 過濾出屬於目前所選大隊的小組卡片
       let groupNameList = Array.from(new Set([...Object.keys(localGroupMap), ...v_createdGroups])).sort();
-      if (canvasFilter) groupNameList = groupNameList.filter(g => g.toLowerCase().includes(canvasFilter));
+      
+      if (currentSelectedGroupTab !== "全部") {
+        groupNameList = groupNameList.filter(gName => {
+          if (currentSelectedGroupTab === "未編大隊") {
+            return !gName.includes("_");
+          }
+          return gName.startsWith(currentSelectedGroupTab);
+        });
+      }
 
-      const totalItems = groupNameList.length;
-      const totalPages = Math.ceil(totalItems / g_pageSize) || 1;
-      if (g_currentPage > totalPages) g_currentPage = totalPages;
-
-      const startIndex = (g_currentPage - 1) * g_pageSize;
-      const paginatedGroups = groupNameList.slice(startIndex, startIndex + g_pageSize);
-
-      canvasBox.innerHTML = paginatedGroups.map(gName => {
+      // 5. 繪製右側畫布小組卡片
+      canvasBox.innerHTML = groupNameList.map(gName => {
         const ms = localGroupMap[gName] || [];
         const isActive = (activeGroupId === gName);
         return `
           <div class="item-card ${isActive ? 'active-group' : ''}" onclick="selectActiveGroup('${gName}')">
             <div class="card-header">
-              <input type="text" value="${gName}" onblur="renameVirtualGroup('${gName}', this.value)" style="font-weight:900; color:#fff; border:none; background:transparent; width:75%; outline:none;" onclick="event.stopPropagation()">
-              <span class="status-tag" style="background:var(--cyber-neon-green); color:#000;">${ms.length}人</span>
+              <input type="text" value="${gName}" onblur="renameVirtualGroup('${gName}', this.value)" style="font-weight:900; font-size:15px; border:none; background:transparent; width:75%; padding:0;" onclick="event.stopPropagation()">
+              <span class="status-tag">${ms.length} 人</span>
             </div>
             <div style="flex-grow:1;">
               ${ms.length > 0 ? ms.map(m => `
                 <div class="member-row">
-                  <span>• ${m.name}</span>
-                  <span style="color:var(--cyber-neon-pink); cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); removeStudentFromGroup(${m.row})">×</span>
-                </div>`).join('') : '<div style="color:#4a5568;">(空小組)</div>'}
+                  <span>• ${m.name} <small style="color:#666;">(${m.gender})</small></span>
+                  <span style="color:var(--shine-red); cursor:pointer; font-size:16px;" onclick="event.stopPropagation(); removeStudentFromGroup(${m.row})">×</span>
+                </div>`).join('') : '<div class="empty-placeholder">(此組尚無成員)</div>'}
             </div>
           </div>`;
-      }).join('');
-
-      const pBar = document.getElementById("group-pagination");
-      pBar.innerHTML = `
-        <button class="btn btn-outline" ${g_currentPage===1?'disabled':''} onclick="g_currentPage--; renderGroupTab();">◀ 上一頁</button>
-        <span style="font-weight:bold; font-size:14px;">第 ${g_currentPage} / ${totalPages} 頁 (總共 ${totalItems} 組)</span>
-        <button class="btn btn-outline" ${g_currentPage===totalPages?'disabled':''} onclick="g_currentPage++; renderGroupTab();">下一頁 ▶</button>
-      `;
+      }).join('') || '<div class="empty-placeholder" style="grid-column: 1/-1;">此大隊目前尚無小組，請點擊上方開拓小組。</div>';
     }
 
-    function selectActiveGroup(gName) { activeGroupId = gName; renderGroupTab(); document.getElementById("group-focus-banner").innerText = `👉 目標組別：【${gName}】`; }
-    function addNewVirtualGroup() { const gName = `新小組_${Date.now().toString().slice(-4)}`; v_createdGroups.unshift(gName); selectActiveGroup(gName); markDataAsDirty('group'); }
-    function assignToActiveGroup(rowId) { if (!activeGroupId) { alert("請先選取右側「小組卡片」！"); return; } const old = deltaChangesMap.get(rowId) || {}; deltaChangesMap.set(rowId, { ...old, row: rowId, group: activeGroupId, teamRole: "" }); markDataAsDirty('group'); renderGroupTab(); }
+    function selectActiveGroup(gName) { activeGroupId = gName; renderGroupTab(); document.getElementById("group-focus-banner").innerText = `🎯 當前鎖定目標：【${gName}】`; }
+    function addNewVirtualGroup() { 
+      const prefix = currentSelectedGroupTab !== "全部" && currentSelectedGroupTab !== "未編大隊" ? `${currentSelectedGroupTab}_` : "";
+      const gName = `${prefix}小組_${Date.now().toString().slice(-3)}`; 
+      v_createdGroups.unshift(gName); 
+      selectActiveGroup(gName); 
+      markDataAsDirty('group'); 
+    }
+    function assignToActiveGroup(rowId) { if (!activeGroupId) { alert("請先點選右側期望加入的「小組卡片」使其高亮！"); return; } const old = deltaChangesMap.get(rowId) || {}; deltaChangesMap.set(rowId, { ...old, row: rowId, group: activeGroupId, teamRole: "" }); markDataAsDirty('group'); renderGroupTab(); }
     function removeStudentFromGroup(rowId) { const old = deltaChangesMap.get(rowId) || {}; deltaChangesMap.set(rowId, { ...old, row: rowId, group: "", teamRole: "" }); markDataAsDirty('group'); renderGroupTab(); }
 
     function renameVirtualGroup(oldName, newName) {
@@ -457,93 +616,132 @@
           count++;
         }
       });
-      if (count > 0) { markDataAsDirty('group'); renderGroupTab(); alert(`⚡ 自動排入 ${count} 位學員！`); } else { alert("無符合線索。"); }
+      if (count > 0) { markDataAsDirty('group'); renderGroupTab(); alert(`⚡ 已將 ${count} 位學員依照團報小組名單自動定位！`); } else { alert("名冊池內已無符合未編組學員。"); }
     }
 
-    // 🛏️ 功能模組二：編寢作業主要邏輯
+
+    // =========================================
+    // 🛏️ 功能模組二：全員編寢分房 (徹底清除空白漏洞、順利讀取)
+    // =========================================
     function renderDormTab() {
       const rTabs = document.getElementById("dorm-region-tabs");
       const poolBox = document.getElementById("dorm-pool-container");
       const canvasBox = document.getElementById("room-grid-canvas");
       const searchKeyword = document.getElementById("dorm-search-input").value.trim().toLowerCase();
 
+      // 1. 輸出區域分頁鈕
       const regionsList = Object.keys(DORM_REGIONS_DICTIONARY);
       rTabs.innerHTML = regionsList.map(rKey => `
-        <button class="btn btn-outline ${currentSelectedRegion===rKey?'active-tab':''}" onclick="currentSelectedRegion='${rKey}'; renderDormTab();">${rKey}</button>
-      `).join('') + `<button class="btn btn-outline ${currentSelectedRegion==='__UNCLASSED__'?'active-tab':''}" onclick="currentSelectedRegion='__UNCLASSED__'; renderDormTab();">未歸類房間 ⚠️</button>`;
+        <button class="btn btn-next ${currentSelectedRegion === rKey ? 'active' : ''}" onclick="currentSelectedRegion='${rKey}'; renderDormTab();">${rKey}</button>
+      `).join('') + `<button class="btn btn-next ${currentSelectedRegion === '__OTHERS__' ? 'active' : ''}" onclick="currentSelectedRegion='__OTHERS__'; renderDormTab();">未定義大區特造房 ⚠️</button>`;
 
-      const localRoomMap = {}; const unassignedPool = [];
+      const localRoomMap = {}; 
+      const unassignedPool = [];
+
+      // 2. 徹底去空白清洗，避免判定破格
       rawCampList.forEach(m => {
         const delta = deltaChangesMap.get(m.row);
-        const finalRoom = (delta && delta.room !== undefined) ? delta.room : m.room;
-        if (finalRoom && finalRoom.trim() !== "") {
-          if (!localRoomMap[finalRoom]) localRoomMap[finalRoom] = []; localRoomMap[finalRoom].push(m);
+        const finalRoom = (delta && delta.room !== undefined) ? delta.room.trim() : m.room.trim();
+
+        if (finalRoom !== "") {
+          if (!localRoomMap[finalRoom]) localRoomMap[finalRoom] = [];
+          localRoomMap[finalRoom].push(m);
         } else {
-          if (searchKeyword) { if (m.name.toLowerCase().includes(searchKeyword) || m.gender.includes(searchKeyword)) unassignedPool.push(m); } else { unassignedPool.push(m); }
+          // 順利讀取邏輯：優先不限欄位。若有快搜則再過濾
+          if (searchKeyword) {
+            if (m.name.toLowerCase().includes(searchKeyword) || m.gender.includes(searchKeyword) || m.origDormClue.toLowerCase().includes(searchKeyword)) {
+              unassignedPool.push(m);
+            }
+          } else {
+            unassignedPool.push(m);
+          }
         }
       });
 
+      // 🎯 依據「團報分寢 (第27欄)」進行名單池秩序升序排序
+      unassignedPool.sort((a, b) => String(a.origDormClue).localeCompare(String(b.origDormClue), 'zh-Hant'));
+
+      // 3. 渲染左側名單池 (依男女區分)
       poolBox.innerHTML = ['男', '女'].map(g => {
         const subList = unassignedPool.filter(x => x.gender === g);
-        return `<div style="font-weight:900; font-size:12px; color:#cbd5e0; margin-top:8px; border-bottom:1px solid #2d3748;">${g}生池 (${subList.length}人)</div>` + subList.map(m => `
-            <div class="pool-item" onclick="assignToActiveRoom(${m.row}, '${m.gender}')" style="cursor:pointer; border-left-color:${g==='男'?'var(--cyber-neon-blue)':'var(--cyber-neon-pink)'}">
-              <div style="display:flex; justify-content:between; align-items:center;"><span>${m.name}</span>${m.origDormClue ? `<span class="status-tag">原房:${m.origDormClue}</span>`:''}</div>
+        return `
+          <div style="font-weight:900; font-size:13px; color:#fff; background:#111; padding:4px 8px; margin-top:10px; border-left:4px solid ${g==='男'? 'var(--shine-blue)':'var(--shine-red)'}">${g}生名單名冊 (${subList.length}人)</div>
+          ` + subList.map(m => `
+            <div class="pool-item" onclick="assignToActiveRoom(${m.row}, '${m.gender}')">
+              <span>${m.name}</span>
+              ${m.origDormClue ? `<span class="clue-badge">原寢:${m.origDormClue}</span>`:''}
             </div>`).join('');
       }).join('');
 
+      // 4. 過濾此住宿大區應出現的房間號
       let activeRoomList = [];
-      if (currentSelectedRegion === '__UNCLASSED__') {
+      if (currentSelectedRegion === '__OTHERS__') {
         const classedRooms = Object.values(DORM_REGIONS_DICTIONARY).flat();
-        const activeRooms = Array.from(new Set([...Object.keys(localRoomMap), ...v_createdRooms]));
-        activeRoomList = activeRooms.filter(r => !classedRooms.includes(r));
+        const allRoomsInUse = Array.from(new Set([...Object.keys(localRoomMap), ...v_createdRooms]));
+        activeRoomList = allRoomsInUse.filter(r => !classedRooms.includes(r));
       } else {
         const regionDefined = DORM_REGIONS_DICTIONARY[currentSelectedRegion] || [];
         activeRoomList = regionDefined.concat(v_createdRooms.filter(r => !Object.values(DORM_REGIONS_DICTIONARY).flat().includes(r) && !activeRoomList.includes(r)));
         activeRoomList = Array.from(new Set(activeRoomList)).sort();
       }
 
+      // 5. 繪製右側房間卡片
       canvasBox.innerHTML = activeRoomList.map(rNo => {
-        const ms = localRoomMap[rNo] || []; const isActive = (activeRoomNo === rNo);
-        let borderBarColor = "#4a5568"; let roomGender = "空房";
-        if (ms.length > 0) { roomGender = ms[0].gender; borderBarColor = roomGender === '男' ? 'var(--cyber-neon-blue)' : 'var(--cyber-neon-pink)'; }
-        const isOverLimit = ms.length > 4;
+        const ms = localRoomMap[rNo] || []; 
+        const isActive = (activeRoomNo === rNo);
+        
+        let borderHeaderStyle = "border-top:6px solid var(--shine-black);";
+        let roomGender = "空房";
+        if (ms.length > 0) {
+          roomGender = ms[0].gender;
+          borderHeaderStyle = `border-top:6px solid ${roomGender==='男'?'var(--shine-blue)':'var(--shine-red)'};`;
+        }
+        
         return `
-          <div class="item-card ${isActive ? 'active-room' : ''}" onclick="selectActiveRoom('${rNo}')" style="border-top: 5px solid ${borderBarColor};">
+          <div class="item-card ${isActive ? 'active-room' : ''}" onclick="selectActiveRoom('${rNo}')" style="${borderHeaderStyle}">
             <div class="card-header">
-              <input type="text" value="${rNo}" onblur="renameVirtualRoom('${rNo}', this.value)" style="font-weight:900; color:#fff; border:none; background:transparent; width:70%; outline:none;" onclick="event.stopPropagation()">
-              <span class="status-tag" style="${isOverLimit?'background:var(--cyber-warning); color:#000;':''}">${ms.length} 人</span>
+              <input type="text" value="${rNo}" onblur="renameVirtualRoom('${rNo}', this.value)" style="font-weight:900; font-size:16px; border:none; background:transparent; width:70%; padding:0;" onclick="event.stopPropagation()">
+              <span class="status-tag" style="background:var(--shine-black); color:#fff;">${ms.length}人</span>
             </div>
             <div style="flex-grow:1;">
               ${ms.length > 0 ? ms.map(m => `
                 <div class="member-row">
-                  <span>• ${m.name} <small style="color:#718096">(${m.group || '無組'})</small></span>
-                  <span style="color:var(--cyber-neon-pink); cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); removeStudentFromRoom(${m.row})">×</span>
-                </div>`).join('') : `<div style="color:#4a5568;">(空房 - ${roomGender})</div>`}
+                  <span>• ${m.name} <small style="color:#666;">(${m.group || '無組'})</small></span>
+                  <span style="color:var(--shine-red); cursor:pointer;" onclick="event.stopPropagation(); removeStudentFromRoom(${m.row})">×</span>
+                </div>`).join('') : `<div class="empty-placeholder">(空房 - 暫無入住)</div>`}
             </div>
           </div>`;
       }).join('');
     }
 
-    function selectActiveRoom(rNo) { activeRoomNo = rNo; renderDormTab(); document.getElementById("dorm-focus-banner").innerText = `👉 目標寢室：【${rNo}】`; }
-    function addNewVirtualRoom() { const rNo = `R_${Date.now().toString().slice(-4)}`; v_createdRooms.unshift(rNo); selectActiveRoom(rNo); markDataAsDirty('dorm'); }
+    function selectActiveRoom(rNo) { activeRoomNo = rNo; renderDormTab(); document.getElementById("dorm-focus-banner").innerText = `🎯 當前鎖定房間：【${rNo}】`; }
+    function addNewVirtualRoom() { const rNo = `房_${Date.now().toString().slice(-3)}`; v_createdRooms.unshift(rNo); selectActiveRoom(rNo); markDataAsDirty('dorm'); }
     
     function assignToActiveRoom(rowId, gender) {
-      if (!activeRoomNo) { alert("請先選取右側「房間卡片」！"); return; }
+      if (!activeRoomNo) { alert("請先點選選取右側「房間卡片」！"); return; }
       const residents = rawCampList.filter(m => {
         const d = deltaChangesMap.get(m.row);
-        return ((d && d.room !== undefined) ? d.room : m.room) === activeRoomNo;
+        return ((d && d.room !== undefined) ? d.room.trim() : m.room.trim()) === activeRoomNo;
       });
-      if (residents.length > 0 && residents[0].gender !== gender) { alert(`❌ 性別硬攔截！【${residents[0].gender}生房】男生女生不得混編！`); return; }
-      const old = deltaChangesMap.get(rowId) || {}; deltaChangesMap.set(rowId, { ...old, row: rowId, room: activeRoomNo });
+      // 🛡️ 男女生硬性防混編攔截
+      if (residents.length > 0 && residents[0].gender !== gender) { 
+        alert(`❌ 安全警報：此房已被系統定位為【${residents[0].gender}生房】！男女不得混住！`); 
+        return; 
+      }
+      const old = deltaChangesMap.get(rowId) || {}; 
+      deltaChangesMap.set(rowId, { ...old, row: rowId, room: activeRoomNo });
       markDataAsDirty('dorm'); renderDormTab();
     }
+    
     function removeStudentFromRoom(rowId) { const old = deltaChangesMap.get(rowId) || {}; deltaChangesMap.set(rowId, { ...old, row: rowId, room: "" }); markDataAsDirty('dorm'); renderDormTab(); }
 
     function renameVirtualRoom(oldNo, newNo) {
       newNo = newNo.trim(); if (!newNo || oldNo === newNo) return;
       rawCampList.forEach(m => {
         const d = deltaChangesMap.get(m.row);
-        if (((d && d.room !== undefined) ? d.room : m.room) === oldNo) { deltaChangesMap.set(m.row, { ...(deltaChangesMap.get(m.row) || {}), row: m.row, room: newNo }); }
+        if (((d && d.room !== undefined) ? d.room : m.room) === oldNo) { 
+          deltaChangesMap.set(m.row, { ...(deltaChangesMap.get(m.row) || {}), row: m.row, room: newNo }); 
+        }
       });
       const idx = v_createdRooms.indexOf(oldNo); if (idx !== -1) v_createdRooms[idx] = newNo;
       if (activeRoomNo === oldNo) activeRoomNo = newNo;
@@ -553,22 +751,31 @@
     function executeSpeedyDorm() {
       let count = 0;
       rawCampList.forEach(m => {
-        const d = deltaChangesMap.get(m.row); const currentR = (d && d.room !== undefined) ? d.room : m.room;
-        if ((!currentR || currentR.trim() === "") && m.origDormClue) { deltaChangesMap.set(m.row, { ...(d || {}), row: m.row, room: m.origDormClue }); count++; }
+        const d = deltaChangesMap.get(m.row); 
+        const currentR = (d && d.room !== undefined) ? d.room : m.room;
+        if ((!currentR || currentR.trim() === "") && m.origDormClue) { 
+          deltaChangesMap.set(m.row, { ...(d || {}), row: m.row, room: m.origDormClue }); 
+          count++; 
+        }
       });
-      if (count > 0) { markDataAsDirty('dorm'); renderDormTab(); alert(`⚡ 自動分配完成 ${count} 床位！`); } else { alert("無符合線索。"); }
+      if (count > 0) { markDataAsDirty('dorm'); renderDormTab(); alert(`⚡ 一鍵分房成功！已排入 ${count} 人至期望寢室。`); } else { alert("無符合線索之學員。"); }
     }
 
-    // 🛡️ 功能模組三：隊輔管理
+
+    // =========================================
+    // 🛡️ 功能模組三：隊輔配額精確控管
+    // =========================================
     function renderRoleTab() {
       const menuBox = document.getElementById("role-group-list-menu");
       const filterKey = document.getElementById("role-group-search").value.trim().toLowerCase();
 
       const localGroupClusters = {};
       rawCampList.forEach(m => {
-        const d = deltaChangesMap.get(m.row); const finalGroup = (d && d.group !== undefined) ? d.group : m.group;
+        const d = deltaChangesMap.get(m.row); 
+        const finalGroup = (d && d.group !== undefined) ? d.group : m.group;
         if (finalGroup && finalGroup.trim() !== "") {
-          if (!localGroupClusters[finalGroup]) localGroupClusters[finalGroup] = []; localGroupClusters[finalGroup].push(m);
+          if (!localGroupClusters[finalGroup]) localGroupClusters[finalGroup] = []; 
+          localGroupClusters[finalGroup].push(m);
         }
       });
 
@@ -577,35 +784,55 @@
 
       menuBox.innerHTML = groupKeys.map(gKey => {
         const members = localGroupClusters[gKey];
-        const hasUnconfirmedClue = members.some(m => {
-          const d = deltaChangesMap.get(m.row); const fRole = (d && d.teamRole !== undefined) ? d.teamRole : m.teamRole;
+        // 偵測是否存有「預期隊輔職稱線索」但尚未核定確認的學員
+        const hasLight = members.some(m => {
+          const d = deltaChangesMap.get(m.row); 
+          const fRole = (d && d.teamRole !== undefined) ? d.teamRole : m.teamRole;
           return m.origRoleClue && (!fRole || fRole === '');
         });
-        return `<div class="role-menu-item ${activeRoleGroupId===gKey?'active-menu-item':''}" onclick="selectRoleGroup('${gKey}')"><span>${gKey} <small>(${members.length}人)</small></span>${hasUnconfirmedClue?'<span style="color:var(--cyber-warning);">💡</span>':''}</div>`;
-      }).join('') || '<div style="color:#4a5568; font-size:12px; text-align:center; padding:20px;">(無有效小組)</div>';
+        return `
+          <div class="role-menu-item ${activeRoleGroupId === gKey ? 'active-item' : ''}" onclick="selectRoleGroup('${gKey}')">
+            <span>${gKey} <small>(${members.length}人)</small></span>
+            ${hasLight ? '<span style="background:var(--shine-lime); color:#000; font-size:10px; padding:1px 3px;">線索💡</span>' : ''}
+          </div>`;
+      }).join('') || '<div style="color:#666; font-size:12px; text-align:center; padding:25px;">目前尚無正式組別。</div>';
 
       renderRoleContentDetail(localGroupClusters[activeRoleGroupId] || []);
     }
 
-    function selectRoleGroup(gKey) { activeRoleGroupId = gKey; document.getElementById("role-selected-group-title").innerText = `⛺ 當前小組：【${gKey}】職稱確認`; renderRoleTab(); }
+    function selectRoleGroup(gKey) { activeRoleGroupId = gKey; document.getElementById("role-selected-group-title").innerText = `⛺ 正在檢視小組：【${gKey}】人員職稱核定`; renderRoleTab(); }
 
     function renderRoleContentDetail(membersList) {
       const container = document.getElementById("role-members-table-body");
-      if (!activeRoleGroupId) { container.innerHTML = `<p style="color:#718096; font-style:italic;">請從左側點選一組來進行配額管理。</p>`; return; }
-      if (membersList.length === 0) { container.innerHTML = `<p style="color:#718096; font-style:italic;">本組尚無成員。</p>`; return; }
+      if (!activeRoleGroupId) { container.innerHTML = `<p style="color:#999; font-style:italic;">請從左側點選一組來進行正/副隊輔名額控管。</p>`; return; }
+      if (membersList.length === 0) { container.innerHTML = `<p style="color:#999; font-style:italic;">本組尚無任何小組成員。</p>`; return; }
 
-      let html = `<table style="width:100%; border-collapse: collapse; text-align: left;"><thead><tr style="border-bottom: 2px solid var(--cyber-border); color:#cbd5e0; font-size:13px;"><th style="padding:10px 5px;">學員姓名</th><th style="padding:10px 5px;">性別</th><th style="padding:10px 5px;">📋 團報窗口預期職稱 (欄22)</th><th style="padding:10px 5px; text-align:right;">⚡ 正式設定 (欄38)</th></tr></thead><tbody>`;
+      let html = `
+        <table class="role-table">
+          <thead>
+            <tr>
+              <th>學員姓名</th><th>性別</th><th>📋 報名窗口填寫期望職稱 (欄22)</th><th style="text-align:right;">⚡ 行政決策核准</th>
+            </tr>
+          </thead>
+          <tbody>`;
+      
       html += membersList.map(m => {
-        const d = deltaChangesMap.get(m.row); const fRole = (d && d.teamRole !== undefined) ? d.teamRole : (m.teamRole || "");
-        const isChief = fRole === '正隊輔'; const isAssistant = fRole === '副隊輔'; const isStudent = !fRole || fRole === '';
+        const d = deltaChangesMap.get(m.row); 
+        const fRole = (d && d.teamRole !== undefined) ? d.teamRole : (m.teamRole || "");
+        
+        const isChief = fRole === '正隊輔'; 
+        const isAssistant = fRole === '副隊輔'; 
+        const isStudent = !fRole || fRole === '';
+        
         return `
-          <tr style="border-bottom: 1px solid #1a202c; font-size:14px;">
-            <td style="padding:12px 5px; font-weight:bold;">${m.name}</td><td style="padding:12px 5px;">${m.gender}</td>
-            <td style="padding:12px 5px;">${m.origRoleClue ? `<span class="clue-hint">⚓ 團報預定：${m.origRoleClue}</span>` : '-'}</td>
-            <td style="padding:12px 5px; text-align:right;">
-              <button onclick="toggleRoleTitle(${m.row}, '正隊輔')" class="btn" style="padding:3px 9px; font-size:11px; background:${isChief ? 'var(--cyber-warning)' : '#2d3748'}; color:${isChief?'#000':'#fff'}">正</button>
-              <button onclick="toggleRoleTitle(${m.row}, '副隊輔')" class="btn" style="padding:3px 9px; font-size:11px; background:${isAssistant ? 'var(--cyber-neon-blue)' : '#2d3748'}; color:${isAssistant?'#000':'#fff'}">副</button>
-              <button onclick="toggleRoleTitle(${m.row}, '')" class="btn" style="padding:3px 9px; font-size:11px; background:${isStudent ? '#0b0c10' : '#2d3748'}; color:${isStudent ? '#4a5568' : '#fff'}">員</button>
+          <tr>
+            <td style="font-weight:900; font-size:16px;">${m.name}</td>
+            <td>${m.gender}</td>
+            <td>${m.origRoleClue ? `<span class="clue-badge" style="background:var(--shine-lime);">期望職稱：${m.origRoleClue}</span>` : '-'}</td>
+            <td style="text-align:right;">
+              <button onclick="toggleRoleTitle(${m.row}, '正隊輔')" class="btn" style="padding:4px 10px; font-size:12px; background:${isChief ? 'var(--shine-black)' : '#fff'}; color:${isChief?'var(--shine-lime)':'#000'}">正隊</button>
+              <button onclick="toggleRoleTitle(${m.row}, '副隊輔')" class="btn" style="padding:4px 10px; font-size:12px; background:${isAssistant ? 'var(--shine-black)' : '#fff'}; color:${isAssistant?'var(--shine-lime)':'#000'}">副隊</button>
+              <button onclick="toggleRoleTitle(${m.row}, '')" class="btn" style="padding:4px 10px; font-size:12px; background:${isStudent ? '#eee' : '#fff'}; color:${isStudent ? '#bbb' : '#000'}">一般學員</button>
             </td>
           </tr>`;
       }).join('');
@@ -614,7 +841,8 @@
 
     function toggleRoleTitle(rowId, targetRole) {
       const student = rawCampList.find(x => x.row === rowId); if (!student) return;
-      const dSelf = deltaChangesMap.get(rowId); const groupOfStudent = (dSelf && dSelf.group !== undefined) ? dSelf.group : student.group;
+      const dSelf = deltaChangesMap.get(rowId); 
+      const groupOfStudent = (dSelf && dSelf.group !== undefined) ? dSelf.group : student.group;
       const currentRole = (dSelf && dSelf.teamRole !== undefined) ? dSelf.teamRole : (student.teamRole || "");
       if (currentRole === targetRole) return;
 
@@ -625,8 +853,9 @@
             return ((d && d.group !== undefined) ? d.group : x.group) === groupOfStudent && ((d && d.teamRole !== undefined) ? d.teamRole : x.teamRole) === roleName;
           }).length;
         };
-        if (targetRole === '正隊輔' && countExistingRoles('正隊輔') >= 1) { alert(`⚠️ 配額超額！【${groupOfStudent}】已存在 1 名正隊輔！`); return; }
-        if (targetRole === '副隊輔' && countExistingRoles('副隊輔') >= 2) { alert(`⚠️ 配額超額！【${groupOfStudent}】副隊輔已達 2 名上限！`); return; }
+        // 🛡️ 隊輔職稱限額防呆攔截
+        if (targetRole === '正隊輔' && countExistingRoles('正隊輔') >= 1) { alert(`⚠️ 限額攔截！【${groupOfStudent}】已存在 1 名正隊輔，請先將其退職！`); return; }
+        if (targetRole === '副隊輔' && countExistingRoles('副隊輔') >= 2) { alert(`⚠️ 限額攔截！【${groupOfStudent}】副隊輔配額已達 2 名上限！`); return; }
       }
       deltaChangesMap.set(rowId, { ...(deltaChangesMap.get(rowId) || {}), row: rowId, teamRole: targetRole });
       markDataAsDirty('role'); renderRoleTab();
@@ -635,10 +864,14 @@
     function executeSpeedyRoleTransfer() {
       let count = 0; let blockedCount = 0;
       rawCampList.forEach(m => {
-        const d = deltaChangesMap.get(m.row); const finalG = (d && d.group !== undefined) ? d.group : m.group; const finalR = (d && d.teamRole !== undefined) ? d.teamRole : m.teamRole;
+        const d = deltaChangesMap.get(m.row); 
+        const finalG = (d && d.group !== undefined) ? d.group : m.group; 
+        const finalR = (d && d.teamRole !== undefined) ? d.teamRole : m.teamRole;
         if (finalG && (!finalR || finalR === '') && m.origRoleClue) {
           let targetRole = "";
-          if (m.origRoleClue.includes("正")) targetRole = "正隊輔"; if (m.origRoleClue.includes("副")) targetRole = "副隊輔";
+          if (m.origRoleClue.includes("正")) targetRole = "正隊輔"; 
+          if (m.origRoleClue.includes("副")) targetRole = "副隊輔";
+          
           if (targetRole !== "") {
             const countCurrent = (rName) => rawCampList.filter(x => { const dx = deltaChangesMap.get(x.row); return ((dx && dx.group !== undefined) ? dx.group : x.group) === finalG && ((dx && dx.teamRole !== undefined) ? dx.teamRole : x.teamRole) === rName; }).length;
             if (targetRole === "正隊輔" && countCurrent("正隊輔") >= 1) { blockedCount++; return; }
@@ -647,29 +880,49 @@
           }
         }
       });
-      if (count > 0 || blockedCount > 0) { markDataAsDirty('role'); renderRoleTab(); alert(`⚡ 一鍵確認：成功轉正 ${count} 位隊輔！${blockedCount>0?`\n⚠️ 另有 ${blockedCount} 筆因配額超限被安全攔截。`:''}`); } else { alert("無可自動轉正的隊輔。"); }
+      if (count > 0 || blockedCount > 0) { 
+        markDataAsDirty('role'); renderRoleTab(); 
+        alert(`⚡ 一鍵確認完畢：順利轉正 ${count} 位隊輔！\n⚠️ 另有 ${blockedCount} 筆因超過正副配額上限被安全防呆欄截。`); 
+      } else { 
+        alert("目前名冊中無明確隊輔期望線索。"); 
+      }
     }
 
-    // 💾 增量（Delta）變更打包寫入
-    async function commitDeltaChangesToServer(btnElement) {
-      const updatesPayload = Array.from(deltaChangesMap.values());
-      if (updatesPayload.length === 0) { alert("無任何變更需要同步。"); return; }
 
-      if (updatesPayload.some(u => u.group !== undefined)) {
+    // =========================================
+    // 💾 批次變更同步提交邏輯
+    // =========================================
+    async function commitDeltaChangesToServer(type) {
+      const updatesPayload = Array.from(deltaChangesMap.values());
+      if (updatesPayload.length === 0) { alert("無任何變更需要儲存。"); return; }
+
+      // 如果有更動小組名，防呆避免出現完全同名的空群組
+      if (type === 'group') {
         const inputs = document.querySelectorAll('input[onblur*="renameVirtualGroup"]');
         const names = Array.from(inputs).map(i => i.value.trim()).filter(n => n !== "");
-        if (names.filter((item, index) => names.indexOf(item) !== index).length > 0) { alert(`❌ 同步終止！偵測到重複的小組名稱設定，請先修正。`); return; }
+        if (names.filter((item, index) => names.indexOf(item) !== index).length > 0) { alert(`❌ 儲存終止！偵測到重複的小組名稱設定，請修改後再送出。`); return; }
       }
 
-      const btn = btnElement; const originalText = btn.innerText;
-      btn.innerText = "⏳ 增量同步至雲端中..."; btn.disabled = true;
+      const saveBtn = document.querySelector(`#save-bar-${type} .btn-save-action`);
+      const origText = saveBtn.innerText;
+      saveBtn.innerText = "⏳ 增量同步寫入總表資料庫中...";
+      saveBtn.disabled = true;
 
       try {
         const msg = await requestBackendApi("batchUpdateCampData", { updates: updatesPayload });
-        alert("✅ " + msg); deltaChangesMap.clear(); isDataDirty = false; hideAllSaveBars(); await loadAllCampData();
-      } catch (err) { alert("❌ 批次寫入失敗：" + err.message); } finally { btn.innerText = originalText; btn.disabled = false; }
+        alert("✅ 成功！" + msg);
+        deltaChangesMap.clear();
+        isDataDirty = false;
+        hideAllSaveBars();
+        await loadAllCampData(); // 重新整理
+      } catch (err) {
+        alert("❌ 寫入失敗：" + err.message);
+        saveBtn.innerText = origText;
+        saveBtn.disabled = false;
+      }
     }
 
+    // 視窗關閉前防呆
     window.addEventListener('beforeunload', (e) => { if (isDataDirty) { e.preventDefault(); e.returnValue = ''; } });
   </script>
 </body>
