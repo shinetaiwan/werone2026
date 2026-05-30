@@ -238,7 +238,7 @@
     <div id="admin-dashboard" class="container hidden">
       
       <header>
-        <h1 id="welcome-title">⚡ 營隊編組編寢生活行政大後台</h1>
+        <div class="section-title" id="dashboard-title">編組編寢後台</div>
         <button class="btn btn-next" onclick="loadAllCampData()">🔄 同步 Sheets 最新名冊</button>
       </header>
 
@@ -414,7 +414,7 @@
 
         document.getElementById("auth-block").classList.add('hidden');
         document.getElementById("admin-dashboard").classList.remove('hidden');
-        document.getElementById("welcome-title").innerText = `⚡ 歡迎行政人員：${sessionUser.realName} ｜ 營隊行政生活大後台`;
+        document.getElementById('dashboard-title').innerText = `管理人員：${userName}`;
         
         await loadAllCampData();
       } catch (err) {
