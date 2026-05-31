@@ -720,34 +720,43 @@
    // =========================================
     // 🛏️ 功能模組二：編寢調整主要邏輯 (正式編組分群、男女排序、小卡痕跡)
     // =========================================
+    // =========================================
+    // 🛏️ 功能模組二：全員編寢分房 (正式編組分群、男女色塊、小卡四資訊)
+    // =========================================
     function renderDormTab() {
-      const poolBox = document.getElementById("room-pool-container"); // 請確保 HTML 有此 ID
-      const canvasBox = document.getElementById("room-grid-canvas"); // 請確保 HTML 有此 ID
+      const rTabs = document.getElementById("dorm-region-tabs");
+      const poolBox = document.getElementById("dorm-pool-container");
+      const canvasBox = document.getElementById("room-grid-canvas");
       const searchKeyword = document.getElementById("dorm-search-input").value.trim().toLowerCase();
 
-      // 1. 建立大隊/寢室切換分流導覽列 (如果編寢也有分流，邏輯同編組，此處維持切換渲染)
-      // (可依需求加入類似 currentSelectedRoomTab 的大分流)
+      // 1. 輸出區域分頁鈕（維持你原本的住宿大區分流機制）
+      const regionsList = Object.keys(DORM_REGIONS_DICTIONARY);
+      rTabs.innerHTML = regionsList.map(rKey => `
+        <button class="btn btn-next ${currentSelectedRegion === rKey ? 'active' : ''}" onclick="currentSelectedRegion='${rKey}'; renderDormTab();">${rKey}</button>
+      `).join('') + `<button class="btn btn-next ${currentSelectedRegion === '__OTHERS__' ? 'active' : ''}" onclick="currentSelectedRegion='__OTHERS__'; renderDormTab();">未定義大區特造房 ⚠️</button>`;
 
-      const localRoomMap = {};
+      const localRoomMap = {}; 
       const unassignedPool = [];
 
-      // 2. 分流解析全體學員狀態
+      // 2. 徹底去空白清洗與搜尋過濾
       rawCampList.forEach(m => {
         const delta = deltaChangesMap.get(m.row);
-        const finalRoom = (delta && delta.room !== undefined) ? delta.room : m.room;
-        const finalGroup = (delta && delta.group !== undefined) ? delta.group : m.group;
+        const finalRoom = (delta && delta.room !== undefined) ? delta.room.trim() : m.room.trim();
+        const finalGroup = (delta && delta.group !== undefined) ? delta.group.trim() : (m.group ? m.group.trim() : "");
 
-        // 將「已分配正式寢室」的人丟入 localRoomMap
-        if (finalRoom && finalRoom.trim() !== "") {
+        if (finalRoom !== "") {
           if (!localRoomMap[finalRoom]) localRoomMap[finalRoom] = [];
           localRoomMap[finalRoom].push(m);
         } else {
-          // 尚未編寢的人，根據關鍵字過濾後丟入待選池
+          // 順利讀取與快搜過濾（擴大支援搜尋正式組別與報名窗口）
           if (searchKeyword) {
+            const wClue = m.origWindowClue || "";
             if (m.name.toLowerCase().includes(searchKeyword) || 
-                m.church.toLowerCase().includes(searchKeyword) || 
-                (finalGroup && finalGroup.toLowerCase().includes(searchKeyword)) ||
-                (m.origDormClue && m.origDormClue.toLowerCase().includes(searchKeyword))) {
+                m.gender.includes(searchKeyword) || 
+                (m.origDormClue && m.origDormClue.toLowerCase().includes(searchKeyword)) ||
+                m.church.toLowerCase().includes(searchKeyword) ||
+                finalGroup.toLowerCase().includes(searchKeyword) ||
+                wClue.toLowerCase().includes(searchKeyword)) {
               unassignedPool.push(m);
             }
           } else {
@@ -756,74 +765,71 @@
         }
       });
 
-      // 3. 🎯 待選池依據「正式組別」進行分群，尚未編組的放在「最上面第一個」
+      // 3. 🎯 訴求：待選池改以「正式編組」分群
       const clusteredPool = {};
       unassignedPool.forEach(m => {
         const delta = deltaChangesMap.get(m.row);
-        const finalGroup = (delta && delta.group !== undefined) ? delta.group : m.group;
+        const finalGroup = (delta && delta.group !== undefined) ? delta.group.trim() : (m.group ? m.group.trim() : "");
         
-        // 如果連正式組別都還沒有，歸類為「⚠️ 尚未編組」
-        const groupKey = (finalGroup && finalGroup.trim() !== "") ? finalGroup : "⚠️ 尚未編組";
+        // 🎯 訴求：尚未編組的歸類為特定 Key 準備置頂
+        const groupKey = (finalGroup !== "") ? finalGroup : "⚠️ 尚未編組";
         if (!clusteredPool[groupKey]) clusteredPool[groupKey] = [];
         clusteredPool[groupKey].push(m);
       });
 
-      // 排序組別名稱，並強迫讓「⚠️ 尚未編組」永遠排在最前面
+      // 🎯 訴求：排序組別名稱，並強迫讓「⚠️ 尚未編組」永遠放在最上面
       const sortedGroupKeys = Object.keys(clusteredPool).sort((a, b) => {
         if (a === "⚠️ 尚未編組") return -1;
         if (b === "⚠️ 尚未編組") return 1;
-        return a.localeCompare(b);
+        return a.localeCompare(b, 'zh-Hant');
       });
 
-      // 💡 排序核心：定義男女排序權重（男生先排，女生後排）
-      function getGenderOrder(gender) {
-        if (gender === "男" || gender === "M") return 1;
-        if (gender === "女" || gender === "F") return 2;
-        return 3; // 未註明或其他
+      // 💡 輔助權重：用於群組內男生先排、女生後排
+      function getGenderWeight(g) {
+        if (g === '男' || g === 'M') return 1;
+        if (g === '女' || g === 'F') return 2;
+        return 3;
       }
 
-      // 輸出左側名單池 HTML
+      // 4. 渲染左側名單池
       if (unassignedPool.length === 0) {
-        poolBox.innerHTML = '<div class="empty-placeholder" style="color:#fff;">(全體均已編寢完成)</div>';
+        poolBox.innerHTML = '<div class="empty-placeholder" style="color:#fff; padding:10px;">(全員均已編寢完成)</div>';
       } else {
         poolBox.innerHTML = sortedGroupKeys.map(gKey => {
-          let studentsInGroup = clusteredPool[gKey];
+          let membersInGroup = clusteredPool[gKey];
           
-          // 💡 訴求：男生先排，女生後排
-          studentsInGroup.sort((a, b) => getGenderOrder(a.gender) - getGenderOrder(b.gender));
+          // 🎯 訴求：群組內名單男生先排、女生後排
+          membersInGroup.sort((a, b) => getGenderWeight(a.gender) - getGenderWeight(b.gender));
 
           return `
-            <div style="margin-bottom: 15px; border: 2px solid var(--shine-black); background: #222; padding: 5px;">
-              <div style="color: var(--shine-lime); font-weight: 900; font-size: 13px; padding-bottom: 5px; border-bottom: 1px solid #444;">
-                ⛺ 正式組別：${gKey} (${studentsInGroup.length}人)
+            <div style="margin-bottom: 12px; border: 1px solid #444; background: #222; padding: 4px; border-radius: 4px;">
+              <div style="color: var(--shine-lime); font-weight: 900; font-size: 13px; padding: 3px 6px; background: #111; border-radius: 2px; display: flex; justify-content: space-between;">
+                <span>⛺ 正式組別：${gKey}</span>
+                <span style="color:#aaa;">${membersInGroup.length} 人</span>
               </div>
-              <div style="margin-top: 5px;">
-                ${studentsInGroup.map(m => {
-                  // 💡 訴求：判斷第30欄是否取消報名
+              <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 3px;">
+                ${membersInGroup.map(m => {
+                  // 🎯 訴求：判斷第30欄報名狀況並予以限制
                   const isCancelled = (m.status === "取消報名");
                   const clickAction = isCancelled ? "" : `onclick="assignToActiveRoom(${m.row}, '${m.gender}')"`;
                   
-                  // 💡 訴求：性別資料方塊顏色辨識 (男生深藍底、女生深粉底、取消者全灰)
-                  let genderBg = "background: #e1f5fe; border-left: 5px solid #0288d1;"; // 預設男藍
+                  // 🎯 訴求：性別資料方塊顏色辨識 (男生鵝蛋藍、女生淡粉紅、取消者深灰)
+                  let cardStyle = "background: #e1f5fe; border-left: 5px solid var(--shine-blue); color: #111;";
                   if (m.gender === "女" || m.gender === "F") {
-                    genderBg = "background: #fce4ec; border-left: 5px solid #d81b60;"; // 女粉
+                    cardStyle = "background: #fce4ec; border-left: 5px solid var(--shine-red); color: #111;";
                   }
                   if (isCancelled) {
-                    genderBg = "background: #444 !important; opacity: 0.4; cursor: not-allowed !important; border-left: 5px solid #666;";
+                    cardStyle = "background: #444 !important; opacity: 0.4; cursor: not-allowed !important; border-left: 5px solid #666; color: #888;";
                   }
 
                   return `
-                    <div class="pool-item" ${clickAction} style="padding: 6px 10px; margin-bottom: 4px; ${genderBg}">
-                      <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px;">
-                        <span style="font-size: 15px; font-weight: 900; color: ${isCancelled ? '#888' : '#333'};">
-                          ${m.name} ${isCancelled ? '<span style="color:var(--shine-red); font-size:11px;">[已取消]</span>' : ''}
-                        </span>
-                        <span style="font-size: 11px; font-weight: 700; color: #555;">
-                          ⛪ ${m.church}
-                        </span>
-                        <span style="font-size: 10px; background: rgba(0,0,0,0.05); padding: 1px 4px; border-radius: 2px; color: #666; margin-top: 2px;">
-                          🛏️ 預寢: ${m.origDormClue || '無'}
-                        </span>
+                    <div class="pool-item" ${clickAction} style="padding: 5px 8px; margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; ${cardStyle} cursor: pointer; border-radius: 3px;">
+                      <div style="font-weight: 900; font-size: 14px;">
+                        ${m.name} ${isCancelled ? '<span style="color:var(--shine-red); font-size:11px;">[已取消]</span>' : ''}
+                      </div>
+                      <div style="font-size: 11px; opacity: 0.8; font-weight: 700; width: 100%; display: flex; justify-content: space-between;">
+                        <span>⛪ ${m.church}</span>
+                        <span style="background: rgba(0,0,0,0.06); padding: 0px 3px; border-radius: 2px;">🛏️ 預寢: ${m.origDormClue || '無'}</span>
                       </div>
                     </div>
                   `;
@@ -834,111 +840,110 @@
         }).join('');
       }
 
-      // 4. 繪製右側寢室小卡 (可依照你現有的虛擬建立或固定寢室清單渲染，此處示範渲染畫布)
-      // 假設你的所有動態寢室清單存在 v_createdRooms 陣列中
-      let allowedRooms = Array.from(new Set([...Object.keys(localRoomMap), ...v_createdRooms])).sort();
+      // 5. 過濾此住宿大區應出現的房間號 (維持你原本的住宿大區切換與自造房過濾機制)
+      let activeRoomList = [];
+      if (currentSelectedRegion === '__OTHERS__') {
+        const classedRooms = Object.values(DORM_REGIONS_DICTIONARY).flat();
+        const allRoomsInUse = Array.from(new Set([...Object.keys(localRoomMap), ...v_createdRooms]));
+        activeRoomList = allRoomsInUse.filter(r => !classedRooms.includes(r));
+      } else {
+        const regionDefined = DORM_REGIONS_DICTIONARY[currentSelectedRegion] || [];
+        activeRoomList = regionDefined.concat(v_createdRooms.filter(r => !Object.values(DORM_REGIONS_DICTIONARY).flat().includes(r) && !activeRoomList.includes(r)));
+        activeRoomList = Array.from(new Set(activeRoomList)).sort();
+      }
 
-      canvasBox.innerHTML = allowedRooms.map(rName => {
-        const ms = localRoomMap[rName] || [];
-        const isActive = (activeRoomNo === rName); // 對齊 activeRoomNo
+      // 6. 繪製右側房間卡片
+      canvasBox.innerHTML = activeRoomList.map(rNo => {
+        const ms = localRoomMap[rNo] || []; 
+        const isActive = (activeRoomNo === rNo);
         
-        // 內部學員同樣做男女排序
-        ms.sort((a, b) => getGenderOrder(a.gender) - getGenderOrder(b.gender));
+        // 房內成員同樣按照男生先、女生後排序
+        ms.sort((a, b) => getGenderWeight(a.gender) - getGenderWeight(b.gender));
 
+        let borderHeaderStyle = "border-top:6px solid var(--shine-black);";
+        let roomGender = "空房";
+        if (ms.length > 0) {
+          roomGender = ms[0].gender;
+          borderHeaderStyle = `border-top:6px solid ${roomGender==='男'?'var(--shine-blue)':'var(--shine-red)'};`;
+        }
+        
         return `
-          <div class="item-card ${isActive ? 'active-group' : ''}" onclick="selectActiveRoom('${rName}')">
+          <div class="item-card ${isActive ? 'active-room' : ''}" onclick="selectActiveRoom('${rNo}')" style="${borderHeaderStyle}">
             <div class="card-header">
-              <input type="text" value="${rName}" onblur="renameVirtualRoom('${rName}', this.value)" 
-                     style="font-weight:900; font-size:15px; border:none; background:transparent; width:75%; padding:0;" 
-                     onclick="event.stopPropagation()">
-              <span class="status-tag">${ms.length} 人</span>
+              <input type="text" value="${rNo}" onblur="renameVirtualRoom('${rNo}', this.value)" style="font-weight:900; font-size:16px; border:none; background:transparent; width:70%; padding:0;" onclick="event.stopPropagation()">
+              <span class="status-tag" style="background:var(--shine-black); color:#fff;">${ms.length}人</span>
             </div>
-            <div style="flex-grow:1; display: flex; flex-direction: column; gap: 5px; margin-top: 5px;">
+            <div style="flex-grow:1; display: flex; flex-direction: column; gap: 4px;">
               ${ms.length > 0 ? ms.map(m => {
                 const isCancelled = (m.status === "取消報名");
                 const delta = deltaChangesMap.get(m.row);
-                const currentGroup = (delta && delta.group !== undefined) ? delta.group : m.group;
-                
-                // 💡 寢室內部小卡顏色識別
-                let cardMemberStyle = "background: rgba(2, 136, 209, 0.08); border-left: 3px solid #0288d1;";
+                // 同步取得最新暫存或原始的正式組別
+                const currentGroup = (delta && delta.group !== undefined) ? delta.group.trim() : (m.group ? m.group.trim() : "");
+                const windowClue = (m.origWindowClue && m.origWindowClue.trim() !== "") ? m.origWindowClue : "個人報名";
+
+                let rowStyle = "background: rgba(2, 136, 209, 0.05); border-left: 3px solid var(--shine-blue);";
                 if (m.gender === "女" || m.gender === "F") {
-                  cardMemberStyle = "background: rgba(216, 27, 96, 0.08); border-left: 3px solid #d81b60;";
+                  rowStyle = "background: rgba(216, 27, 96, 0.05); border-left: 3px solid var(--shine-red);";
                 }
-                if (isCancelled) cardMemberStyle = "background: #eee; opacity: 0.5;";
+                if (isCancelled) rowStyle = "background: #eee; opacity: 0.5; border-left: 3px solid #888;";
 
                 return `
-                <div class="member-row" style="align-items: flex-start; flex-direction: column; padding: 6px; gap: 2px; ${cardMemberStyle}">
+                // 🎯 訴求：寢室小卡內呈現：姓名、正式組別、欲編寢資料、報名窗口
+                <div class="member-row" style="display: flex; flex-direction: column; align-items: flex-start; padding: 5px 6px; gap: 2px; ${rowStyle} border-radius: 3px; margin-bottom: 2px;">
                   <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
                     <span style="font-weight: 900; font-size: 14px; color: #111;">
-                      • ${m.name} 
-                      <small style="font-weight: 700; color: #0288d1; background: #e1f5fe; padding: 1px 4px; border-radius:3px;">
-                        ${currentGroup || '未定組'}
+                      • ${m.name}
+                      <small style="font-weight: 700; color: #0288d1; background: #e1f5fe; padding: 1px 3px; border-radius: 3px; font-size: 11px; margin-left: 4px;">
+                        ${currentGroup || '未編組'}
                       </small>
-                      ${isCancelled ? '<span style="color:var(--shine-red); font-size:10px;">[已取消]</span>' : ''}
+                      ${isCancelled ? '<span style="color:var(--shine-red); font-size:10px; font-weight:700;">[已取消]</span>' : ''}
                     </span>
-                    <span style="color:var(--shine-red); cursor:pointer; font-size:16px; font-weight:900;" 
+                    <span style="color:var(--shine-red); cursor:pointer; font-weight:900; font-size:16px; padding: 0 4px;" 
                           onclick="event.stopPropagation(); removeStudentFromRoom(${m.row})">×</span>
                   </div>
                   
-                  <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px;">
-                    <span style="background: #fff; font-size: 10px; color: #333; border: 1px dashed #aaa; padding: 1px 3px; border-radius: 2px;">
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 1px; width: 100%;">
+                    <span style="background: #fff; font-size: 10px; color: #333; border: 1px dashed #bbb; padding: 0px 3px; border-radius: 2px; font-weight: 700;">
                       ↩️ 欲寢: ${m.origDormClue || '無'}
                     </span>
-                    <span style="background: #fff; font-size: 10px; color: #666; border: 1px dashed #aaa; padding: 1px 3px; border-radius: 2px;">
-                      🏢 窗: ${(m.origWindowClue && m.origWindowClue.trim() !== "") ? m.origWindowClue : "個人報名"}
+                    <span style="background: #fff; font-size: 10px; color: #666; border: 1px dashed #bbb; padding: 0px 3px; border-radius: 2px; font-weight: 700;">
+                      🏢 窗: ${windowClue}
                     </span>
                   </div>
                 </div>`;
-              }).join('') : '<div class="empty-placeholder">(此寢室尚無成員)</div>'}
+              }).join('') : `<div class="empty-placeholder">(空房 - 暫無入住)</div>`}
             </div>
           </div>`;
-      }).join('') || '<div class="empty-placeholder" style="grid-column: 1/-1;">目前尚無對應寢室卡片。</div>';
+      }).join('');
     }
 
     function selectActiveRoom(rNo) { activeRoomNo = rNo; renderDormTab(); document.getElementById("dorm-focus-banner").innerText = `🎯 當前鎖定房間：【${rNo}】`; }
     function addNewVirtualRoom() { const rNo = `房_${Date.now().toString().slice(-3)}`; v_createdRooms.unshift(rNo); selectActiveRoom(rNo); markDataAsDirty('dorm'); }
     
-    // 💡 融合版：保留你原本的變數名稱與「男女防混編攔截」機制
+    // 💡 點擊分配輔助函式（完美保留你原本的防混編安全機制與 'dorm' 狀態變數）
     function assignToActiveRoom(rowId, gender) {
-      // 1. 對齊變數名稱：使用你原本的 activeRoomNo
-      if (!activeRoomNo || activeRoomNo.trim() === "") { 
-        alert("請先點選選取右側「房間卡片」！"); 
-        return; 
-      }
-      
-      // 2. 撈出目前這間房裡已經住了哪些人（包含暫存區變更）
+      if (!activeRoomNo) { alert("請先點選選取右側「房間卡片」！"); return; }
       const residents = rawCampList.filter(m => {
         const d = deltaChangesMap.get(m.row);
-        const finalRoom = (d && d.room !== undefined) ? d.room : m.room;
-        return (finalRoom ? finalRoom.trim() : "") === activeRoomNo;
+        return ((d && d.room !== undefined) ? d.room.trim() : m.room.trim()) === activeRoomNo;
       });
-      
-      // 3. 🛡️ 保留原本優秀的男女生硬性防混編攔截
-      if (residents.length > 0) {
-        // 找到房間內第一個人目前的實際性別（同樣考慮暫存或原始性別，一般營隊報名後性別不常變動，直接比對即可）
-        const firstResidentGender = residents[0].gender;
-        if (firstResidentGender !== gender) { 
-          alert(`❌ 安全警報：此房已被系統定位為【${firstResidentGender}生房】！男女不得混住！`); 
-          return; 
-        }
+      // 🛡️ 保留：男女生硬性防混編攔截
+      if (residents.length > 0 && residents[0].gender !== gender) { 
+        alert(`❌ 安全警報：此房已被系統定位為【${residents[0].gender}生房】！男女不得混住！`); 
+        return; 
       }
-      
-      // 4. 通過驗證，寫入暫存 Map
       const old = deltaChangesMap.get(rowId) || {}; 
       deltaChangesMap.set(rowId, { ...old, row: rowId, room: activeRoomNo });
-      
-      // 5. 觸發儲存 Bar（對齊你原本的標籤 'dorm' 與渲染函式名稱）
       markDataAsDirty('dorm'); 
-      renderRoomTab(); // 💡 注意：此處呼叫剛剛為你建構的全新分群渲染函式
+      renderDormTab();
     }
     
     // 💡 移出寢室輔助函式
     function removeStudentFromRoom(rowId) { 
       const old = deltaChangesMap.get(rowId) || {}; 
       deltaChangesMap.set(rowId, { ...old, row: rowId, room: "" }); 
-      
       markDataAsDirty('dorm'); 
-      renderRoomTab(); // 💡 同步刷新全新分群畫面
+      renderDormTab(); 
     }
 
     function renameVirtualRoom(oldNo, newNo) {
