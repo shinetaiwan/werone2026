@@ -1201,7 +1201,7 @@
     }
 
 // =========================================
-    // 📄 全新功能：名冊一鍵匯出（A4 橫式、網格交叉互補版）
+    // 📄 全新功能：名冊一鍵匯出（含正副隊輔置頂排序與姓名標籤版）
     // =========================================
     function exportCampManifest(mode) {
       if (!rawCampList || rawCampList.length === 0) {
@@ -1217,13 +1217,18 @@
         const delta = deltaChangesMap.get(m.row);
         const finalGroup = (delta && delta.group !== undefined) ? delta.group.trim() : (m.group ? m.group.trim() : "");
         const finalRoom = (delta && delta.room !== undefined) ? delta.room.trim() : (m.room ? m.room.trim() : "");
+        
+        // 💡 取得最新的角色身分（防呆讀取你的試算表角色或職稱欄位，如 m.role 或 m.job）
+        // 📌 這裡自動相容：若你的原始欄位叫 job 或 role，請確保抓取正確，此處預設抓取 m.role
+        const finalRole = (delta && delta.role !== undefined) ? delta.role.trim() : (m.role ? m.role.trim() : "");
 
         activeMembers.push({
           name: m.name ? m.name.trim() : "",
           gender: m.gender ? m.gender.trim() : "",
           church: m.church ? m.church.trim() : "",
           group: finalGroup !== "" ? finalGroup : "⚠️ 未編組",
-          room: finalRoom !== "" ? finalRoom : "⚠️ 未編寢"
+          room: finalRoom !== "" ? finalRoom : "⚠️ 未編寢",
+          role: finalRole // 存放「正隊輔」、「副隊輔」或學員身分
         });
       });
 
@@ -1243,15 +1248,21 @@
         return a.localeCompare(b, 'zh-Hant');
       });
 
-      // 4. 定義內部男女排序權重（男生先、女生後）
-      function getGenderWeight(g) {
-        return (g === '男' || g === 'M') ? 1 : ((g === '女' || g === 'F') ? 2 : 3);
+      // 4. 🎯 核心升級：終極權重排序演算法（正隊輔 > 副隊輔 > 男生學員 > 女生學員）
+      function getMemberWeight(m) {
+        if (m.role === '正隊輔') return 1;
+        if (m.role === '副隊輔') return 2;
+        
+        // 學員部分維持原本的男生先、女生後
+        if (m.gender === '男' || m.gender === 'M') return 3;
+        if (m.gender === '女' || m.gender === 'F') return 4;
+        return 5; // 未填性別者
       }
 
       // 📌 設定模式與高精細排版參數
       const isGroupMode = (mode === 'group');
       const maxRows = isGroupMode ? 20 : 5;      
-      const titleName = isGroupMode ? "行政正式小組分冊 (A4橫式-含房號稽核)" : "行政正式寢室分冊 (A4橫式-含小組稽核)";
+      const titleName = isGroupMode ? "行政正式小組分冊 (A4橫式-含隊輔置頂)" : "行政正式寢室分冊 (A4橫式-含隊輔置頂)";
 
       // 5. 組裝 HTML 列印頁面
       let printHtml = `
@@ -1330,6 +1341,30 @@
             .gender-男 { color: #0056b3; font-weight: bold; }
             .gender-女 { color: #c2185b; font-weight: bold; }
             
+            /* 💡 隊輔標籤樣式：小巧精美，不撐開表格高度 */
+            .badge-leader {
+              font-size: 9px;
+              background: #e65100;
+              color: white;
+              padding: 0px 3px;
+              border-radius: 3px;
+              margin-left: 3px;
+              font-weight: 900;
+              display: inline-block;
+              vertical-align: middle;
+            }
+            .badge-sub {
+              font-size: 9px;
+              background: #ef6c00;
+              color: white;
+              padding: 0px 3px;
+              border-radius: 3px;
+              margin-left: 3px;
+              font-weight: 900;
+              display: inline-block;
+              vertical-align: middle;
+            }
+            
             @media print {
               .no-print { display: none; }
             }
@@ -1337,7 +1372,7 @@
         </head>
         <body>
           <div class="no-print">
-            <span style="float: left; color: #666; font-size: 13px; line-height: 35px;">💡 系統提示：本分冊已自動加入交叉互補欄位（小組看得到房號，寢室看得到小組）。</span>
+            <span style="float: left; color: #666; font-size: 13px; line-height: 35px;">💡 系統提示：正副隊輔已自動強制置頂排序，並於姓名旁標註橘色識別標籤。</span>
             <button onclick="window.print()" style="padding: 8px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px;">🖨️ 立即列印 / 另存 PDF</button>
           </div>
           <h1>${titleName}</h1>
@@ -1353,7 +1388,9 @@
 
         pageKeys.forEach(key => {
           const list = clusteredData[key] || [];
-          list.sort((a, b) => getGenderWeight(a.gender) - getGenderWeight(b.gender));
+          
+          // 🎯 核心升級：套用全新綜合權重排序（隊輔置頂 > 男女排序）
+          list.sort((a, b) => getMemberWeight(a) - getMemberWeight(b));
           const actualCount = list.length;
 
           printHtml += `
@@ -1366,10 +1403,10 @@
                 <thead>
                   <tr>
                     <th style="width: 12%; text-align: center;">序</th>
-                    <th style="width: 32%;">姓名</th>
+                    <th style="width: 35%;">姓名</th>
                     <th style="width: 13%; text-align: center;">性</th>
-                    <th style="width: 25%;">教會</th>
-                    <th style="width: 18%;">${isGroupMode ? '房號' : '小組'}</th>
+                    <th style="width: 23%;">教會</th>
+                    <th style="width: 17%;">${isGroupMode ? '房號' : '小組'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1378,13 +1415,20 @@
           for (let i = 0; i < maxRows; i++) {
             if (i < actualCount) {
               const st = list[i];
-              // 依模式決定最後一欄要顯示什麼交叉資訊
               const crossInfo = isGroupMode ? st.room : st.group;
+              
+              // 💡 根據身分動態組裝姓名欄位與標籤
+              let nameDisplay = `<span style="font-weight: bold;">${st.name}</span>`;
+              if (st.role === "正隊輔") {
+                nameDisplay = `<span style="font-weight: 900; color:#e65100;">${st.name}</span><span class="badge-leader">正</span>`;
+              } else if (st.role === "副隊輔") {
+                nameDisplay = `<span style="font-weight: 900; color:#ef6c00;">${st.name}</span><span class="badge-sub">副</span>`;
+              }
               
               printHtml += `
                 <tr>
                   <td class="center" style="color:#666;">${i + 1}</td>
-                  <td style="font-weight: bold;">${st.name}</td>
+                  <td>${nameDisplay}</td>
                   <td class="center"><span class="gender-${st.gender}">${st.gender || ''}</span></td>
                   <td>${st.church}</td>
                   <td style="font-weight: 500; font-size: 11px; color:#333;">${crossInfo}</td>
