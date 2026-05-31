@@ -386,7 +386,39 @@
       return data.data;
     }
 
-    // 🔒 安全驗證登入
+    // =========================================
+    // 🔐 1. 頁面載入時自動執行的初始化檢查 (免重複登入)
+    // =========================================
+    window.addEventListener('load', async () => {
+      // 嘗試從瀏覽器暫存中讀取先前登入成功的憑證
+      const savedToken = sessionStorage.getItem('camp_admin_token');
+      const savedUsername = sessionStorage.getItem('camp_admin_username');
+      const savedRealName = sessionStorage.getItem('camp_admin_realname');
+
+      if (savedToken && savedUsername && savedRealName) {
+        // 💡 核心：將憑證回填至你的全域憑證暫存區，確保 requestBackendApi 能夠自動掛載驗證
+        sessionUser.username = savedUsername;
+        sessionUser.token = savedToken;
+        sessionUser.realName = savedRealName;
+
+        // 💡 呼叫共用函式切換 UI 並拉取雲端資料
+        showDashboard(savedRealName);
+        await loadAllCampData();
+      }
+    });
+
+    // =========================================
+    // 🔐 2. 將切換 UI 的邏輯抽出來共用
+    // =========================================
+    function showDashboard(userName) {
+      document.getElementById('auth-block').classList.add('hidden');
+      document.getElementById('admin-dashboard').classList.remove('hidden');
+      document.getElementById('dashboard-title').innerText = `管理人員：${userName}`;
+    }
+
+    // =========================================
+    // 🔒 3. 安全驗證登入 (整合 sessionStorage 寫入)
+    // =========================================
     async function handleAdminAuth() {
       const uInput = document.getElementById("adm_account").value.trim();
       const pInput = document.getElementById("adm_password").value.trim();
@@ -411,14 +443,18 @@
         const result = await res.json();
         if (!result.success) throw new Error(result.message);
 
-        // 登入成功，寫入動態憑證
+        // 登入成功，寫入動態憑證到你的全域變數
         sessionUser.username = uInput;
         sessionUser.token = result.data.token;
         sessionUser.realName = result.data.userName;
 
-        document.getElementById("auth-block").classList.add('hidden');
-        document.getElementById("admin-dashboard").classList.remove('hidden');
-        document.getElementById('dashboard-title').innerText = `管理人員：${sessionUser.realName}`;
+        // 🎯 新增：同步將憑證寫入瀏覽器暫存，以便下次重新整理時免重複登入
+        sessionStorage.setItem('camp_admin_token', result.data.token);
+        sessionStorage.setItem('camp_admin_username', uInput);
+        sessionStorage.setItem('camp_admin_realname', result.data.userName);
+
+        // 使用共用函式切換 UI
+        showDashboard(sessionUser.realName);
         
         await loadAllCampData();
       } catch (err) {
@@ -427,7 +463,7 @@
         loginBtn.disabled = false;
       }
     }
-
+    
     // 🔄 全域拉取雲端試算表資料
     async function loadAllCampData() {
       try {
