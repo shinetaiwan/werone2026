@@ -630,10 +630,10 @@
                   </div>
                   <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                     <span class="clue-badge" style="background: var(--shine-light); font-size: 10px; color: #333; border-style: dashed;">
-                      ↩️ 預組: ${m.origGroupClue || '無'}
+                      ↩️ 預編組: ${m.origGroupClue || '無'}
                     </span>
                     <span class="clue-badge" style="background: var(--shine-light); font-size: 10px; color: #666; border-style: dashed;">
-                      🏢 窗: ${(m.origWindowClue && m.origWindowClue.trim() !== "") ? m.origWindowClue : "個人報名"}
+                      🏢 窗口: ${(m.origWindowClue && m.origWindowClue.trim() !== "") ? m.origWindowClue : "個人報名"}
                     </span>
                   </div>
                 </div>`).join('') : '<div class="empty-placeholder">(此組尚無成員)</div>'}
@@ -717,9 +717,6 @@
     }
 
 
-   // =========================================
-    // 🛏️ 功能模組二：編寢調整主要邏輯 (正式編組分群、男女排序、小卡痕跡)
-    // =========================================
     // =========================================
     // 🛏️ 功能模組二：全員編寢分房 (正式編組分群、男女色塊、小卡四資訊)
     // =========================================
@@ -888,7 +885,6 @@
                 if (isCancelled) rowStyle = "background: #eee; opacity: 0.5; border-left: 3px solid #888;";
 
                 return `
-                // 🎯 訴求：寢室小卡內呈現：姓名、正式組別、欲編寢資料、報名窗口
                 <div class="member-row" style="display: flex; flex-direction: column; align-items: flex-start; padding: 5px 6px; gap: 2px; ${rowStyle} border-radius: 3px; margin-bottom: 2px;">
                   <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
                     <span style="font-weight: 900; font-size: 14px; color: #111;">
@@ -904,10 +900,10 @@
                   
                   <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 1px; width: 100%;">
                     <span style="background: #fff; font-size: 10px; color: #333; border: 1px dashed #bbb; padding: 0px 3px; border-radius: 2px; font-weight: 700;">
-                      ↩️ 欲寢: ${m.origDormClue || '無'}
+                      ↩️ 預編寢: ${m.origDormClue || '無'}
                     </span>
                     <span style="background: #fff; font-size: 10px; color: #666; border: 1px dashed #bbb; padding: 0px 3px; border-radius: 2px; font-weight: 700;">
-                      🏢 窗: ${windowClue}
+                      🏢 窗口: ${windowClue}
                     </span>
                   </div>
                 </div>`;
