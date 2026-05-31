@@ -1423,6 +1423,15 @@
         </body>
         </html>
       `;
+
+      // 7. 新開視窗並寫入 HTML 內容以供列印
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(printHtml);
+        printWindow.document.close();
+      } else {
+        alert("❌ 視窗攔截警報：偵測到瀏覽器封鎖彈跳視窗，請允許此網頁跳出視窗以完成名冊匯出！");
+      }
     }
 
     // 視窗關閉前防呆
