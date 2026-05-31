@@ -579,7 +579,7 @@
                         </span>
                         <!-- 💡 訴求 2：待選池名單新增預編組標籤 -->
                         <span style="font-size: 10px; background: rgba(0,0,0,0.05); padding: 1px 4px; border-radius: 2px; color: #555; margin-top: 2px;">
-                          ↩️ 預組: ${m.origGroupClue || '無'}
+                          ↩️ 預編組: ${m.origGroupClue || '無'}
                         </span>
                       </div>
                     </div>
@@ -826,7 +826,7 @@
                       </div>
                       <div style="font-size: 11px; opacity: 0.8; font-weight: 700; width: 100%; display: flex; justify-content: space-between;">
                         <span>⛪ ${m.church}</span>
-                        <span style="background: rgba(0,0,0,0.06); padding: 0px 3px; border-radius: 2px;">🛏️ 預寢: ${m.origDormClue || '無'}</span>
+                        <span style="background: rgba(0,0,0,0.06); padding: 0px 3px; border-radius: 2px;">🛏️ 預編寢: ${m.origDormClue || '無'}</span>
                       </div>
                     </div>
                   `;
@@ -849,7 +849,7 @@
         activeRoomList = Array.from(new Set(activeRoomList)).sort();
       }
 
-      // 6. 繪製右側房間卡片
+      // 6. 繪製右側房間卡片（加入正式小組資訊版）
       canvasBox.innerHTML = activeRoomList.map(rNo => {
         const ms = localRoomMap[rNo] || []; 
         const isActive = (activeRoomNo === rNo);
@@ -874,7 +874,8 @@
               ${ms.length > 0 ? ms.map(m => {
                 const isCancelled = (m.status === "取消報名");
                 const delta = deltaChangesMap.get(m.row);
-                // 同步取得最新暫存或原始的正式組別
+                
+                // 💡 自動取得最新暫存或原始的正式組別
                 const currentGroup = (delta && delta.group !== undefined) ? delta.group.trim() : (m.group ? m.group.trim() : "");
                 const windowClue = (m.origWindowClue && m.origWindowClue.trim() !== "") ? m.origWindowClue : "個人報名";
 
@@ -885,24 +886,30 @@
                 if (isCancelled) rowStyle = "background: #eee; opacity: 0.5; border-left: 3px solid #888;";
 
                 return `
-                <div class="member-row" style="display: flex; flex-direction: column; align-items: flex-start; padding: 5px 6px; gap: 2px; ${rowStyle} border-radius: 3px; margin-bottom: 2px;">
+                <div class="member-row" style="display: flex; flex-direction: column; align-items: flex-start; padding: 6px; gap: 2px; ${rowStyle} border-radius: 3px; margin-bottom: 2px;">
                   <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
                     <span style="font-weight: 900; font-size: 14px; color: #111;">
                       • ${m.name}
-                      <small style="font-weight: 700; color: #0288d1; background: #e1f5fe; padding: 1px 3px; border-radius: 3px; font-size: 11px; margin-left: 4px;">
-                        ${currentGroup || '未編組'}
-                      </small>
                       ${isCancelled ? '<span style="color:var(--shine-red); font-size:10px; font-weight:700;">[已取消]</span>' : ''}
                     </span>
                     <span style="color:var(--shine-red); cursor:pointer; font-weight:900; font-size:16px; padding: 0 4px;" 
                           onclick="event.stopPropagation(); removeStudentFromRoom(${m.row})">×</span>
                   </div>
                   
-                  <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 1px; width: 100%;">
-                    <span style="background: #fff; font-size: 10px; color: #333; border: 1px dashed #bbb; padding: 0px 3px; border-radius: 2px; font-weight: 700;">
-                      ↩️ 預編寢: ${m.origDormClue || '無'}
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap; width: 100%; margin-top: 1px;">
+                    <span style="font-weight: 700; color: #0288d1; background: #e1f5fe; padding: 1px 4px; border-radius: 3px; font-size: 11px;">
+                      ⛺ ${currentGroup || '未編組'}
                     </span>
-                    <span style="background: #fff; font-size: 10px; color: #666; border: 1px dashed #bbb; padding: 0px 3px; border-radius: 2px; font-weight: 700;">
+                    <span style="font-weight: 700; color: #555; background: #eee; padding: 1px 4px; border-radius: 3px; font-size: 11px;">
+                      ⛪ ${m.church}
+                    </span>
+                  </div>
+                  
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap; width: 100%;">
+                    <span style="background: #fff; font-size: 10px; color: #333; border: 1px dashed #aaa; padding: 0px 3px; border-radius: 2px; font-weight: 700;">
+                      🛏️ 預編寢: ${m.origDormClue || '無'}
+                    </span>
+                    <span style="background: #fff; font-size: 10px; color: #666; border: 1px dashed #aaa; padding: 0px 3px; border-radius: 2px; font-weight: 700;">
                       🏢 窗口: ${windowClue}
                     </span>
                   </div>
@@ -911,7 +918,6 @@
             </div>
           </div>`;
       }).join('');
-    }
 
     function selectActiveRoom(rNo) { activeRoomNo = rNo; renderDormTab(); document.getElementById("dorm-focus-banner").innerText = `🎯 當前鎖定房間：【${rNo}】`; }
     function addNewVirtualRoom() { const rNo = `房_${Date.now().toString().slice(-3)}`; v_createdRooms.unshift(rNo); selectActiveRoom(rNo); markDataAsDirty('dorm'); }
