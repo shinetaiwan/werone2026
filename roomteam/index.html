@@ -918,6 +918,7 @@
             </div>
           </div>`;
       }).join('');
+    }
 
     function selectActiveRoom(rNo) { activeRoomNo = rNo; renderDormTab(); document.getElementById("dorm-focus-banner").innerText = `🎯 當前鎖定房間：【${rNo}】`; }
     function addNewVirtualRoom() { const rNo = `房_${Date.now().toString().slice(-3)}`; v_createdRooms.unshift(rNo); selectActiveRoom(rNo); markDataAsDirty('dorm'); }
