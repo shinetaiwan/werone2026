@@ -1201,7 +1201,7 @@
     }
 
 // =========================================
-    // 📄 全新功能：名冊一鍵匯出（含正副隊輔置頂排序與姓名標籤版）
+    // 📄 全新功能：名冊一鍵匯出（精準對接 teamRole 欄位版）
     // =========================================
     function exportCampManifest(mode) {
       if (!rawCampList || rawCampList.length === 0) {
@@ -1218,9 +1218,8 @@
         const finalGroup = (delta && delta.group !== undefined) ? delta.group.trim() : (m.group ? m.group.trim() : "");
         const finalRoom = (delta && delta.room !== undefined) ? delta.room.trim() : (m.room ? m.room.trim() : "");
         
-        // 💡 取得最新的角色身分（防呆讀取你的試算表角色或職稱欄位，如 m.role 或 m.job）
-        // 📌 這裡自動相容：若你的原始欄位叫 job 或 role，請確保抓取正確，此處預設抓取 m.role
-        const finalRole = (delta && delta.role !== undefined) ? delta.role.trim() : (m.role ? m.role.trim() : "");
+        // 🎯 關鍵修正：精準對接你前端正在使用的 teamRole 欄位名稱
+        const finalTeamRole = (delta && delta.teamRole !== undefined) ? delta.teamRole.trim() : (m.teamRole ? m.teamRole.trim() : "");
 
         activeMembers.push({
           name: m.name ? m.name.trim() : "",
@@ -1228,7 +1227,7 @@
           church: m.church ? m.church.trim() : "",
           group: finalGroup !== "" ? finalGroup : "⚠️ 未編組",
           room: finalRoom !== "" ? finalRoom : "⚠️ 未編寢",
-          role: finalRole // 存放「正隊輔」、「副隊輔」或學員身分
+          teamRole: finalTeamRole // 正確儲存「正隊輔」、「副隊輔」或空字串
         });
       });
 
@@ -1248,15 +1247,15 @@
         return a.localeCompare(b, 'zh-Hant');
       });
 
-      // 4. 🎯 核心升級：終極權重排序演算法（正隊輔 > 副隊輔 > 男生學員 > 女生學員）
+      // 4. 終極權重排序演算法（正隊輔 > 副隊輔 > 男生學員 > 女生學員）
       function getMemberWeight(m) {
-        if (m.role === '正隊輔') return 1;
-        if (m.role === '副隊輔') return 2;
+        if (m.teamRole === '正隊輔') return 1;
+        if (m.teamRole === '副隊輔') return 2;
         
         // 學員部分維持原本的男生先、女生後
         if (m.gender === '男' || m.gender === 'M') return 3;
         if (m.gender === '女' || m.gender === 'F') return 4;
-        return 5; // 未填性別者
+        return 5; 
       }
 
       // 📌 設定模式與高精細排版參數
@@ -1348,7 +1347,7 @@
               color: white;
               padding: 0px 3px;
               border-radius: 3px;
-              margin-left: 3px;
+              margin-left: 4px;
               font-weight: 900;
               display: inline-block;
               vertical-align: middle;
@@ -1359,7 +1358,7 @@
               color: white;
               padding: 0px 3px;
               border-radius: 3px;
-              margin-left: 3px;
+              margin-left: 4px;
               font-weight: 900;
               display: inline-block;
               vertical-align: middle;
@@ -1389,7 +1388,7 @@
         pageKeys.forEach(key => {
           const list = clusteredData[key] || [];
           
-          // 🎯 核心升級：套用全新綜合權重排序（隊輔置頂 > 男女排序）
+          // 🎯 核心升級：依據 teamRole 計算權重並進行綜合排序
           list.sort((a, b) => getMemberWeight(a) - getMemberWeight(b));
           const actualCount = list.length;
 
@@ -1414,23 +1413,23 @@
 
           for (let i = 0; i < maxRows; i++) {
             if (i < actualCount) {
-              const st = list[i];
-              const crossInfo = isGroupMode ? st.room : st.group;
+              const m = list[i];
+              const crossInfo = isGroupMode ? m.room : m.group;
               
-              // 💡 根據身分動態組裝姓名欄位與標籤
-              let nameDisplay = `<span style="font-weight: bold;">${st.name}</span>`;
-              if (st.role === "正隊輔") {
-                nameDisplay = `<span style="font-weight: 900; color:#e65100;">${st.name}</span><span class="badge-leader">正</span>`;
-              } else if (st.role === "副隊輔") {
-                nameDisplay = `<span style="font-weight: 900; color:#ef6c00;">${st.name}</span><span class="badge-sub">副</span>`;
+              // 💡 根據 teamRole 身分動態組裝姓名與標籤
+              let nameDisplay = `<span style="font-weight: bold;">${m.name}</span>`;
+              if (m.teamRole === "正隊輔") {
+                nameDisplay = `<span style="font-weight: 900; color:#e65100;">${m.name}</span><span class="badge-leader">正</span>`;
+              } else if (m.teamRole === "副隊輔") {
+                nameDisplay = `<span style="font-weight: 900; color:#ef6c00;">${m.name}</span><span class="badge-sub">副</span>`;
               }
               
               printHtml += `
                 <tr>
                   <td class="center" style="color:#666;">${i + 1}</td>
                   <td>${nameDisplay}</td>
-                  <td class="center"><span class="gender-${st.gender}">${st.gender || ''}</span></td>
-                  <td>${st.church}</td>
+                  <td class="center"><span class="gender-${m.gender}">${m.gender || ''}</span></td>
+                  <td>${m.church}</td>
                   <td style="font-weight: 500; font-size: 11px; color:#333;">${crossInfo}</td>
                 </tr>
               `;
