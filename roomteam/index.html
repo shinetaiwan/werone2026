@@ -242,12 +242,12 @@
         <button id="tab-btn-group" class="btn btn-next active" onclick="switchTab('group')">正式編組</button>
         <button id="tab-btn-dorm" class="btn btn-next" onclick="switchTab('dorm')">正式編寢</button>
         <button id="tab-btn-role" class="btn btn-next" onclick="switchTab('role')">隊輔確認</button>
-        <div style="background: #222; border: 1px solid #444; padding: 10px; margin: 10px 0; border-radius: 4px; display: flex; align-items: center; gap: 12px;">
-        <span style="color: var(--shine-lime); font-weight: 900; font-size: 14px;">📄 行政名冊一鍵匯出：</span>
-        <button class="btn" style="background: #0288d1; color: white;" onclick="exportCampManifest('group')">⛺ 按「正式小組」分群匯出</button>
-        <button class="btn" style="background: #d81b60; color: white;" onclick="exportCampManifest('dorm')">🛏️ 按「正式寢室」分群匯出</button>
+        <button class="btn btn-next" onclick="loadAllCampData()">🔄 重整報名名冊</button
+        <div style="background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; gap: 12px;">
+        <span style="color: var(--shine-lime); font-weight: 900; font-size: 14px;">📄 匯出名冊：</span>
+        <button class="btn" style="background: #0288d1; color: white;" onclick="exportCampManifest('group')">⛺ 按「正式小組」</button>
+        <button class="btn" style="background: #d81b60; color: white;" onclick="exportCampManifest('dorm')">🛏️ 按「正式寢室」</button>
         </div>
-        <button class="btn btn-next" onclick="loadAllCampData()">🔄 同步 Sheets 最新名冊</button>
       </div>
 
       <div id="tab-content-group" class="tab-content">
@@ -1201,7 +1201,7 @@
     }
 
     // =========================================
-    // 📄 全新功能：名冊一鍵匯出（A4 橫式、純資料無簽到欄版）
+    // 📄 全新功能：名冊一鍵匯出（A4 橫式、小組 4*1 直條排版、寢室 4*3 豆腐塊版）
     // =========================================
     function exportCampManifest(mode) {
       if (!rawCampList || rawCampList.length === 0) {
@@ -1212,16 +1212,16 @@
       // 1. 整理最新資料（融合暫存區 deltaChangesMap，排除已取消報名者）
       const activeMembers = [];
       rawCampList.forEach(m => {
-        if (m.status === "取消報名") return; // 排除取消報名者
+        if (m.status === "取消報名") return; 
 
         const delta = deltaChangesMap.get(m.row);
         const finalGroup = (delta && delta.group !== undefined) ? delta.group.trim() : (m.group ? m.group.trim() : "");
         const finalRoom = (delta && delta.room !== undefined) ? delta.room.trim() : (m.room ? m.room.trim() : "");
 
         activeMembers.push({
-          name: m.name ? m.name.trim() : "未命名",
-          gender: m.gender ? m.gender.trim() : "未填",
-          church: m.church ? m.church.trim() : "個人報名",
+          name: m.name ? m.name.trim() : "",
+          gender: m.gender ? m.gender.trim() : "",
+          church: m.church ? m.church.trim() : "",
           group: finalGroup !== "" ? finalGroup : "⚠️ 未編組",
           room: finalRoom !== "" ? finalRoom : "⚠️ 未編寢"
         });
@@ -1235,10 +1235,11 @@
         clusteredData[clusterKey].push(m);
       });
 
-      // 3. 排序大類別（讓未編組/未編寢永遠排在最下面）
+      // 3. 排序大類別（讓 未編組/未編寢 永遠排在最後面）
       const sortedKeys = Object.keys(clusteredData).sort((a, b) => {
-        if (a.includes("⚠️")) return 1;
-        if (b.includes("⚠️")) return -1;
+        const targetAlert = (mode === 'group') ? "⚠️ 未編組" : "⚠️ 未編寢";
+        if (a === targetAlert) return 1;
+        if (b === targetAlert) return -1;
         return a.localeCompare(b, 'zh-Hant');
       });
 
@@ -1247,8 +1248,12 @@
         return (g === '男' || g === 'M') ? 1 : ((g === '女' || g === 'F') ? 2 : 3);
       }
 
-      // 5. 組裝 HTML 列印頁面（內嵌 A4 橫式強制指令）
-      const titleName = (mode === 'group') ? "正式小組分群名冊" : "正式寢室分群名冊";
+      // 📌 設定模式與高精細排版參數
+      const isGroupMode = (mode === 'group');
+      const maxRows = isGroupMode ? 20 : 5;      // 小組留 20 格，寢室留 5 格
+      const titleName = isGroupMode ? "行政正式小組分冊 (A4橫式-每頁4組並排)" : "行政正式寢室分冊 (A4橫式-每頁12寢並排)";
+
+      // 5. 組裝 HTML 列印頁面（內嵌 4*1 與 4*3 網格切換指令）
       let printHtml = `
         <html>
         <head>
@@ -1256,145 +1261,168 @@
           <style>
             @page { 
               size: A4 landscape; 
-              margin: 1.5cm 1.2cm 1.5cm 1.2cm; 
+              margin: 0.8cm 0.8cm 0.8cm 0.8cm; /* 稍微縮小邊距，確保 20 列小組能完美一頁塞到底不換頁 */
             }
-            
             body { 
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-              padding: 0; 
-              margin: 0;
-              color: #111; 
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+              padding: 0; margin: 0; color: #111; background: #fff; line-height: 1.2;
+            }
+            .no-print { 
+              background: #f8f9fa; padding: 10px; border-bottom: 1px solid #ddd; text-align: right; 
+            }
+            h1 { text-align: center; margin: 0 0 2px 0; font-size: 20px; font-weight: bold; }
+            .meta-info { text-align: center; font-size: 11px; color: #555; margin-bottom: 12px; }
+            
+            /* 🎯 關鍵技術：Grid 欄位定義 */
+            .grid-container {
+              display: grid;
+              /* 💡 小組模式強迫 4*1 (一橫排4個直條)；寢室模式維持 4*3 (四欄) */
+              grid-template-columns: repeat(4, 1fr); 
+              gap: ${isGroupMode ? '0px 10px' : '12px 10px'};
+              width: 100%;
+            }
+            
+            /* 強制每頁數量自動斷頁 */
+            .page-wrapper {
+              page-break-after: always;
+            }
+            .page-wrapper:last-child {
+              page-break-after: avoid;
+            }
+
+            .cluster-box {
+              border: 1.5px solid #444;
+              display: flex;
+              flex-direction: column;
               background: #fff;
             }
-            
-            h1 { text-align: center; margin: 0 0 5px 0; font-size: 26px; font-weight: bold; letter-spacing: 1px; }
-            .meta-info { text-align: center; font-size: 12px; color: #555; margin-bottom: 20px; }
-            
-            .cluster-section { 
-              page-break-inside: avoid; 
-              margin-bottom: 35px; 
-            }
-            
-            .cluster-title { 
-              font-size: 16px; 
-              font-weight: 800; 
-              background: #e9ecef; 
-              padding: 8px 14px; 
-              border-left: 6px solid ${mode === 'group' ? '#007bff' : '#e83e8c'}; 
-              margin-bottom: 10px; 
-              display: flex; 
+            .cluster-header {
+              background: #e9ecef;
+              padding: 5px 8px;
+              font-weight: bold;
+              font-size: 13px;
+              border-bottom: 1.5px solid #444;
+              display: flex;
               justify-content: space-between;
-              align-items: center;
-              border-radius: 2px;
             }
-            
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin-bottom: 5px; 
-              background: #fff;
+            table {
+              width: 100%;
+              border-collapse: collapse;
             }
-            
-            th, td { 
-              border: 1.5px solid #999; 
-              padding: 12px 14px; /* 移除簽到欄後，上下左右間距稍微加大，表格更好看 */
-              text-align: left; 
-              font-size: 15px; /* 字體再微調放大一些，視覺感更舒服 */
-              vertical-align: middle;
+            th, td {
+              border-bottom: 1px solid #aaa;
+              border-right: 1px solid #ccc;
+              padding: 4px 5px;
+              font-size: 12px;
+              /* 💡 緊湊行高控制：確保小組 20 列 + 表頭 + 標題能精準壓在 A4 橫式高度之內 */
+              height: ${isGroupMode ? '21px' : '25px'}; 
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
-            
-            th { 
-              background: #f8f9fa; 
-              font-weight: bold; 
-              color: #222;
+            td:last-child, th:last-child {
+              border-right: none;
             }
-            
+            th {
+              background: #f8f9fa;
+              font-weight: bold;
+              font-size: 11px;
+              text-align: left;
+              height: 18px;
+            }
+            .center { text-align: center; }
             .gender-男 { color: #0056b3; font-weight: bold; }
             .gender-女 { color: #c2185b; font-weight: bold; }
             
-            .no-print { 
-              background: #f8f9fa; 
-              padding: 12px; 
-              border-bottom: 1px solid #ddd; 
-              text-align: right; 
-              margin-bottom: 20px; 
-            }
-            
             @media print {
               .no-print { display: none; }
-              body { padding: 0; }
-              html, body { height: auto; }
             }
           </style>
         </head>
         <body>
           <div class="no-print">
-            <span style="float: left; color: #666; font-size: 13px; line-height: 35px;">💡 系統提示：本分冊已自動鎖定「A4 橫式」佈局。若預覽畫面不對，請手動將列印方向改為「橫向」。</span>
-            <button onclick="window.print()" style="padding: 8px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">🖨️ 立即列印 / 另存 PDF</button>
+            <span style="float: left; color: #666; font-size: 13px; line-height: 35px;">💡 系統提示：本分冊已自動進行高密度多欄排版。請放心直接執行列印。</span>
+            <button onclick="window.print()" style="padding: 8px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px;">🖨️ 立即列印 / 另存 PDF</button>
           </div>
           <h1>${titleName}</h1>
           <div class="meta-info">匯出時間：${new Date().toLocaleString('zh-TW')} | 操作人員：${sessionUser.realName || '系統管理員'}</div>
       `;
 
-      // 遍歷各大組/房間渲染表格
-      sortedKeys.forEach(key => {
-        const list = clusteredData[key];
-        // 內部排序：同組內男生先排，女生後排
-        list.sort((a, b) => getGenderWeight(a.gender) - getGenderWeight(b.gender));
+      // 6. 分頁切割演算法：每頁幾項（小組 4*1 故每頁 4 項；寢室每頁 12 項）
+      const itemsPerPage = isGroupMode ? 4 : 12;
+      const pagesCount = Math.ceil(sortedKeys.length / itemsPerPage);
 
-        printHtml += `
-          <div class="cluster-section">
-            <div class="cluster-title">
-              <span>${(mode === 'group') ? '⛺ 正式小組' : '🛏️ 分配寢室'}：<span style="font-size: 18px;">${key}</span></span>
-              <span style="font-size: 14px; color:#444; background: rgba(0,0,0,0.05); padding: 2px 8px; border-radius: 10px;">名冊小計: <b>${list.length}</b> 人</span>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th style="width: 8%; text-align: center;">序號</th>
-                  <th style="width: 18%;">姓名</th>
-                  <th style="width: 10%; text-align: center;">性別</th>
-                  <th style="width: 34%;">所屬屬會/教會</th>
-                  <th style="width: 15%;">正式小組</th>
-                  <th style="width: 15%;">正式房號</th>
-                </tr>
-              </thead>
-              <tbody>
-        `;
+      for (let p = 0; p < pagesCount; p++) {
+        // 開啟新的一頁包裝
+        printHtml += `<div class="page-wrapper ${p > 0 ? 'page-break-before' : ''}"><div class="grid-container">`;
 
-        list.forEach((st, idx) => {
+        // 撈出這一頁應該分配到的群組 Keys
+        const pageKeys = sortedKeys.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
+
+        pageKeys.forEach(key => {
+          const list = clusteredData[key] || [];
+          // 內部排序：同群內男生先、女生後
+          list.sort((a, b) => getGenderWeight(a.gender) - getGenderWeight(b.gender));
+          const actualCount = list.length;
+
           printHtml += `
-            <tr>
-              <td style="text-align: center; color: #666;">${idx + 1}</td>
-              <td style="font-weight: bold; font-size: 16px;">${st.name}</td>
-              <td style="text-align: center;"><span class="gender-${st.gender}">${st.gender}</span></td>
-              <td>${st.church}</td>
-              <td>${st.group}</td>
-              <td style="font-weight: bold;">${st.room}</td>
-            </tr>
+            <div class="cluster-box">
+              <div class="cluster-header">
+                <span>${isGroupMode ? '⛺ ' : '🛏️ '}${key}</span>
+                <span style="font-size:11px; color:#555;">實住: ${actualCount} 人</span>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 15%; text-align: center;">序</th>
+                    <th style="width: 40%;">姓名</th>
+                    <th style="width: 15%; text-align: center;">性</th>
+                    <th style="width: 30%;">教會簡稱</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
+
+          // 固定填滿格數（不夠的留空列）
+          for (let i = 0; i < maxRows; i++) {
+            if (i < actualCount) {
+              const st = list[i];
+              printHtml += `
+                <tr>
+                  <td class="center" style="color:#666;">${i + 1}</td>
+                  <td style="font-weight: bold;">${st.name}</td>
+                  <td class="center"><span class="gender-${st.gender}">${st.gender || ''}</span></td>
+                  <td>${st.church}</td>
+                </tr>
+              `;
+            } else {
+              // 未滿預留人數的部分輸出完全空白列
+              printHtml += `
+                <tr>
+                  <td class="center" style="color:#ccc;">${i + 1}</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              `;
+            }
+          }
+
+          printHtml += `
+                </tbody>
+              </table>
+            </div>
           `;
         });
 
-        printHtml += `
-              </tbody>
-            </table>
-          </div>
-        `;
-      });
+        // 關閉這一頁
+        printHtml += `</div></div>`;
+      }
 
       printHtml += `
         </body>
         </html>
       `;
-
-      // 6. 新開視窗並寫入 HTML 內容以供列印
-      const printWindow = window.open("", "_blank");
-      if (printWindow) {
-        printWindow.document.write(printHtml);
-        printWindow.document.close();
-      } else {
-        alert("❌ 視窗攔截警報：偵測到瀏覽器封鎖彈跳視窗，請允許此網頁跳出視窗以完成名冊匯出！");
-      }
     }
 
     // 視窗關閉前防呆
